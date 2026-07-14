@@ -1,9 +1,13 @@
 import json
 from typing import Any
+
 from pydantic import BaseModel, Field
+
 from contracts.schemas import Hypothesis
 from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
 from rca.agents.tools import query_changes, query_graph, query_logs, query_metrics
+
+MAX_CONFIDENCE_NUDGE = 0.05
 
 
 class SkepticEvaluation(BaseModel):
@@ -19,7 +23,8 @@ def build_skeptic_system_prompt() -> str:
         "Your sole job is to rigorously attack and try to disprove root-cause hypotheses. "
         "Use your tools to check for flaws: Is the config change on a different VLAN? Is there a valid routing path? "
         "Are interface error counters actually zero? "
-        "If a hypothesis cannot be disproven and is supported by topology, mark it as survived with a positive confidence adjustment. "
+        "If a hypothesis cannot be disproven and is supported by topology, "
+        "mark it as survived with a positive confidence adjustment. "
         "If it relies on correlation without causal mechanism, mark it as failed with a negative adjustment."
     )
 
@@ -65,14 +70,15 @@ def evaluate_single_hypothesis(hypothesis: Hypothesis, symptom: str) -> tuple[Hy
         thinking=THINKING_CONFIG,
         output_config={
             "effort": OUTPUT_CONFIG["effort"],
-            "format": SkepticEvaluation.model_json_schema(),
+            "format": {"type": "json_schema", "schema": SkepticEvaluation.model_json_schema()},
         },
         tools=[query_graph, query_metrics, query_logs, query_changes],
         messages=[{"role": "user", "content": user_prompt}],
     )
 
     evaluation = extract_skeptic_evaluation(runner_result)
-    updated_confidence = clamp_confidence(hypothesis.confidence, evaluation.confidence_adjustment)
+    bounded_adjustment = max(-MAX_CONFIDENCE_NUDGE, min(MAX_CONFIDENCE_NUDGE, evaluation.confidence_adjustment))
+    updated_confidence = clamp_confidence(hypothesis.confidence, bounded_adjustment)
 
     updated_hypothesis = Hypothesis(
         rank=hypothesis.rank,
@@ -96,21 +102,4 @@ def run_storm_verification(hypotheses: list[Hypothesis], symptom: str) -> tuple[
         updated_hypothesis, transcript = evaluate_single_hypothesis(hypothesis, symptom)
         verified_hypotheses.append(updated_hypothesis)
         debate_transcripts.append(transcript)
-    
-    sorted_hypotheses = sorted(verified_hypotheses, key=lambda item: item.confidence, reverse=True)
-    reranked_hypotheses = []
-    for index, hypothesis in enumerate(sorted_hypotheses, start=1):
-        reranked_hypotheses.append(
-            Hypothesis(
-                rank=index,
-                root_cause_component=hypothesis.root_cause_component,
-                fault_type=hypothesis.fault_type,
-                confidence=hypothesis.confidence,
-                causal_score=hypothesis.causal_score,
-                topology_path=hypothesis.topology_path,
-                evidence=hypothesis.evidence,
-                counterfactual=hypothesis.counterfactual,
-                skeptic_verdict=hypothesis.skeptic_verdict,
-            )
-        )
-    return reranked_hypotheses, debate_transcripts
+    return verified_hypotheses, debate_transcripts
