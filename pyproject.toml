@@ -5,7 +5,7 @@ description = "Explainable root-cause analysis for network anomalies"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 addopts = "-q"
 
