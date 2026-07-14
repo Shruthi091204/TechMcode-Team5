@@ -1,0 +1,44 @@
+# --- Internal workspace: never reaches the judges ---
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.hackathon_brain/
+IMPLEMENTATION.md
+*.plan.md
+NOTES.md
+TODO.md
+
+# --- Organizer datasets (large, not ours to redistribute) ---
+archive/
+archive2/
+archive.zip
+*.parquet
+*.arff
+
+# --- Secrets & environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Dependencies & build output (extend per chosen stack) ---
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.log
