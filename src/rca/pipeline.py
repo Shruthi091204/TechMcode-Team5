@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
 from scipy.stats import median_abs_deviation
 
 from contracts.schemas import (
@@ -154,6 +155,65 @@ def analyse_incident(
         alerts,
         logs,
         telemetry,
+    )
+
+
+class LiveIncident(BaseModel):
+    incident_id: str
+    detected_at: datetime
+    symptom: str
+    symptom_component: str
+    hypotheses: list[Hypothesis]
+
+
+def _incident_id() -> str:
+    payload = json.loads((FIXTURES / "ground_truth.json").read_text())
+    return payload["incident_id"]
+
+
+def _detection_time(symptom_id: str, alerts: list[AlertRecord], anomalies: list[Anomaly]) -> datetime:
+    critical = [a for a in alerts if a.component_id == symptom_id and a.severity.value == "CRITICAL"]
+    if critical:
+        return min(alert.ts for alert in critical)
+    onsets = [a.onset_ts for a in anomalies if a.component_id == symptom_id]
+    if onsets:
+        return min(onsets)
+    return max(a.onset_ts for a in anomalies)
+
+
+def _symptom_statement(symptom_id: str, anomalies: list[Anomaly], alerts: list[AlertRecord]) -> str:
+    latency = [a for a in anomalies if a.component_id == symptom_id and a.metric == "latency_ms"]
+    if not latency:
+        component_anomalies = [a for a in anomalies if a.component_id == symptom_id]
+        worst = max(component_anomalies, key=lambda a: a.severity_score, default=None)
+        if worst is None:
+            return f"{symptom_id} degraded beyond baseline"
+        return f"{symptom_id} {worst.metric} reached {worst.observed_value:.2f} (baseline {worst.baseline_value:.2f})"
+    peak = max(latency, key=lambda a: a.observed_value)
+    deviation = (peak.observed_value - peak.baseline_value) / peak.baseline_value * 100 if peak.baseline_value else 0.0
+    alert = next((a for a in alerts if a.component_id == symptom_id and a.metric == "latency_ms"), None)
+    threshold = f" against a {alert.threshold:.0f}ms threshold" if alert else ""
+    return (
+        f"{symptom_id} latency reached {peak.observed_value:.1f}ms{threshold}, "
+        f"a +{deviation:.0f}% deviation from the {peak.baseline_value:.1f}ms baseline"
+    )
+
+
+def build_live_incident(symptom_id: str | None = None) -> LiveIncident:
+    topology = load_topology()
+    telemetry = load_telemetry_frame()
+    anomalies = derive_anomalies(topology, telemetry)
+    alerts = load_alerts()
+    changes = load_changes()
+    logs = load_logs()
+    resolved_symptom = symptom_id or _select_symptom(anomalies, topology, alerts)
+    hypotheses = analyse_incident(topology, telemetry, anomalies, changes, alerts, logs, symptom_id=resolved_symptom)
+    return LiveIncident(
+        incident_id=_incident_id(),
+        detected_at=_detection_time(resolved_symptom, alerts, anomalies),
+        symptom=_symptom_statement(resolved_symptom, anomalies, alerts),
+        symptom_component=resolved_symptom,
+        hypotheses=hypotheses,
     )
 
 
