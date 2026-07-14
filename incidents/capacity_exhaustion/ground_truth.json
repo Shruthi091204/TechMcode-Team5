@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc-3f374dae",
+  "scenario": "capacity_exhaustion",
+  "injection_timestamp": "2026-07-14T20:12:14.859502+00:00",
+  "true_root_cause": {
+    "component_id": "db-01",
+    "fault_type": "resource_starvation"
+  }
+}

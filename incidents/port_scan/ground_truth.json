@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc-129a9a66",
+  "scenario": "port_scan",
+  "injection_timestamp": "2026-07-14T20:29:05.971872+00:00",
+  "true_root_cause": {
+    "component_id": "lb-01",
+    "fault_type": "security_scan"
+  }
+}
