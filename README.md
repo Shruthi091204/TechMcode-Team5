@@ -31,9 +31,20 @@ Telemetry · Logs · Alerts · Topology · Config changes
               Tamper-evident audit trail   Incident timeline · Narrative · Remediation
 ```
 
+## Getting started
+
+Requires Python 3.11 or newer.
+
+```
+make setup     # create .venv and install dependencies
+make check     # static analysis, then the contract and fixture test suite
+```
+
+`contracts/` holds the frozen data contract: Pydantic models in `schemas.py`, the exported JSON Schema in `schemas.json`, and a fully validated reference incident under `fixtures/`. Every component of the system is developed and tested against that fixture.
+
 ## Status
 
-Under active development. Detailed setup and execution instructions will accompany the first tagged release.
+Under active development. Detailed execution instructions for the full pipeline will accompany the first tagged release.
 
 ## Licence
 
