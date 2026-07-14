@@ -1,8 +1,10 @@
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
+
 from pydantic import BaseModel, Field
+
 from contracts.schemas import Hypothesis, IncidentReport, TimelineEvent
 from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
 from rca.agents.tools import query_changes, query_graph, query_logs, query_metrics
@@ -18,8 +20,10 @@ def build_system_prompt() -> str:
     return (
         "You are an expert Network Root-Cause Investigator for a Tier-1 NOC. "
         "You are provided with deterministic causal hypotheses derived from physical network topology. "
-        "Your task is to verify the evidence using your investigation tools, construct a chronological timeline of events, "
-        "write a clear, plain-English root-cause narrative, and recommend next diagnostic steps grounded strictly in missing evidence. "
+        "Your task is to verify the evidence using your investigation tools, "
+        "construct a chronological timeline of events, "
+        "write a clear, plain-English root-cause narrative, "
+        "and recommend next diagnostic steps grounded strictly in missing evidence. "
         "Never invent metrics, logs, or components not returned by your tools."
     )
 
@@ -75,7 +79,7 @@ def investigate_incident(
         thinking=THINKING_CONFIG,
         output_config={
             "effort": OUTPUT_CONFIG["effort"],
-            "format": InvestigatorOutput.model_json_schema(),
+            "format": {"type": "json_schema", "schema": InvestigatorOutput.model_json_schema()},
         },
         tools=[query_graph, query_metrics, query_logs, query_changes],
         messages=[{"role": "user", "content": user_prompt}],
