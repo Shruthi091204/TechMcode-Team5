@@ -1,7 +1,7 @@
 {
-  "incident_id": "inc-c6a1ca77",
+  "incident_id": "inc-3246a76b",
   "scenario": "ddos_flood",
-  "injection_timestamp": "2026-07-14T20:22:04.037101+00:00",
+  "injection_timestamp": "2026-07-14T21:43:18.574723+00:00",
   "true_root_cause": {
     "component_id": "lb-01",
     "fault_type": "traffic_spike"

@@ -35,21 +35,21 @@ services:
       - NET_ADMIN
     networks:
       - rca_net
-    # A tiny zero-dependency HTTP server that proxies a wait to the DB to simulate processing
-    command: >
-      python -c "
-      import http.server, socketserver, urllib.request, time
-      class Handler(http.server.SimpleHTTPRequestHandler):
-          def do_GET(self):
-              try:
-                  urllib.request.urlopen('http://db-01:3306', timeout=2)
-              except Exception:
-                  pass
-              self.send_response(200)
-              self.end_headers()
-              self.wfile.write(b'OK')
-      socketserver.TCPServer(('0.0.0.0', 8000), Handler).serve_forever()
-      "
+    command:
+      - python
+      - -c
+      - |
+        import http.server, socketserver, urllib.request, time
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                try:
+                    urllib.request.urlopen('http://db-01:3306', timeout=2)
+                except Exception:
+                    pass
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'OK')
+        socketserver.TCPServer(('0.0.0.0', 8000), Handler).serve_forever()
 
   db-01:
     image: mysql:8.0

@@ -1,7 +1,7 @@
 {
-  "incident_id": "inc-ddddcd2c",
+  "incident_id": "inc-0f8ae660",
   "scenario": "bad_config_push",
-  "injection_timestamp": "2026-07-14T19:53:05.792264+00:00",
+  "injection_timestamp": "2026-07-14T21:33:18.947742+00:00",
   "true_root_cause": {
     "component_id": "web-01",
     "fault_type": "config_misconfiguration"
