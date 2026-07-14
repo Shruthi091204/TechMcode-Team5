@@ -1,0 +1,843 @@
+{
+  "$defs": {
+    "AlertRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "alert_id": {
+          "pattern": "^ALT-\\d{4,}$",
+          "title": "Alert Id",
+          "type": "string"
+        },
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "rule": {
+          "minLength": 1,
+          "title": "Rule",
+          "type": "string"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "threshold": {
+          "title": "Threshold",
+          "type": "number"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "number"
+        }
+      },
+      "required": [
+        "alert_id",
+        "component_id",
+        "ts",
+        "severity",
+        "rule",
+        "metric",
+        "threshold",
+        "observed"
+      ],
+      "title": "AlertRecord",
+      "type": "object"
+    },
+    "Anomaly": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "onset_ts": {
+          "description": "Change-point onset, not a threshold crossing",
+          "format": "date-time",
+          "title": "Onset Ts",
+          "type": "string"
+        },
+        "severity_score": {
+          "description": "Deviation from baseline in median-absolute-deviation units",
+          "minimum": 0.0,
+          "title": "Severity Score",
+          "type": "number"
+        },
+        "window_start": {
+          "format": "date-time",
+          "title": "Window Start",
+          "type": "string"
+        },
+        "window_end": {
+          "format": "date-time",
+          "title": "Window End",
+          "type": "string"
+        },
+        "baseline_value": {
+          "title": "Baseline Value",
+          "type": "number"
+        },
+        "observed_value": {
+          "title": "Observed Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "component_id",
+        "metric",
+        "onset_ts",
+        "severity_score",
+        "window_start",
+        "window_end",
+        "baseline_value",
+        "observed_value"
+      ],
+      "title": "Anomaly",
+      "type": "object"
+    },
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "component_type": {
+          "$ref": "#/$defs/ComponentType"
+        },
+        "tier": {
+          "$ref": "#/$defs/Tier"
+        },
+        "rack": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Rack",
+          "type": "string"
+        },
+        "capacity_mbps": {
+          "minimum": 0.0,
+          "title": "Capacity Mbps",
+          "type": "number"
+        }
+      },
+      "required": [
+        "component_id",
+        "component_type",
+        "tier",
+        "rack",
+        "capacity_mbps"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "ComponentType": {
+      "enum": [
+        "core_switch",
+        "tor_switch",
+        "firewall",
+        "load_balancer",
+        "web_server",
+        "app_server",
+        "database",
+        "cache",
+        "message_queue",
+        "dns_server"
+      ],
+      "title": "ComponentType",
+      "type": "string"
+    },
+    "ConfigChange": {
+      "additionalProperties": false,
+      "properties": {
+        "change_id": {
+          "pattern": "^CHG-\\d{4,}$",
+          "title": "Change Id",
+          "type": "string"
+        },
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "author": {
+          "minLength": 1,
+          "title": "Author",
+          "type": "string"
+        },
+        "change_type": {
+          "minLength": 1,
+          "title": "Change Type",
+          "type": "string"
+        },
+        "before": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Before",
+          "type": "object"
+        },
+        "after": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "After",
+          "type": "object"
+        },
+        "ticket_id": {
+          "minLength": 1,
+          "title": "Ticket Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "change_id",
+        "component_id",
+        "ts",
+        "author",
+        "change_type",
+        "before",
+        "after",
+        "ticket_id"
+      ],
+      "title": "ConfigChange",
+      "type": "object"
+    },
+    "Decoy": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "trap_kind": {
+          "$ref": "#/$defs/TrapKind"
+        },
+        "reason": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component_id",
+        "trap_kind",
+        "reason"
+      ],
+      "title": "Decoy",
+      "type": "object"
+    },
+    "Dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "target_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "relation": {
+          "$ref": "#/$defs/RelationKind"
+        }
+      },
+      "required": [
+        "source_id",
+        "target_id",
+        "relation"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "EvidenceItem": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "statement": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/EvidenceSource"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identifier of the raw record backing this statement",
+          "title": "Ref"
+        }
+      },
+      "required": [
+        "kind",
+        "statement",
+        "source"
+      ],
+      "title": "EvidenceItem",
+      "type": "object"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "confirmed",
+        "correlated",
+        "missing"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "EvidenceSource": {
+      "enum": [
+        "metric",
+        "log",
+        "alert",
+        "config",
+        "topology",
+        "counterfactual"
+      ],
+      "title": "EvidenceSource",
+      "type": "string"
+    },
+    "FaultType": {
+      "enum": [
+        "config_pool_exhaustion",
+        "bad_config_push",
+        "link_degradation",
+        "nic_failure",
+        "capacity_exhaustion",
+        "ddos_flood",
+        "port_scan"
+      ],
+      "title": "FaultType",
+      "type": "string"
+    },
+    "GroundTruth": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "incident_id": {
+          "pattern": "^INC-\\d{4,}$",
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "scenario": {
+          "minLength": 1,
+          "title": "Scenario",
+          "type": "string"
+        },
+        "root_cause_component": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Root Cause Component",
+          "type": "string"
+        },
+        "fault_type": {
+          "$ref": "#/$defs/FaultType"
+        },
+        "injected_at": {
+          "format": "date-time",
+          "title": "Injected At",
+          "type": "string"
+        },
+        "onset_at": {
+          "format": "date-time",
+          "title": "Onset At",
+          "type": "string"
+        },
+        "symptom_component": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Symptom Component",
+          "type": "string"
+        },
+        "propagation_path": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Propagation Path",
+          "type": "array"
+        },
+        "injection_command": {
+          "description": "The exact command that produced the fault",
+          "minLength": 1,
+          "title": "Injection Command",
+          "type": "string"
+        },
+        "decoys": {
+          "items": {
+            "$ref": "#/$defs/Decoy"
+          },
+          "title": "Decoys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "incident_id",
+        "scenario",
+        "root_cause_component",
+        "fault_type",
+        "injected_at",
+        "onset_at",
+        "symptom_component",
+        "propagation_path",
+        "injection_command"
+      ],
+      "title": "GroundTruth",
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "root_cause_component": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Root Cause Component",
+          "type": "string"
+        },
+        "fault_type": {
+          "$ref": "#/$defs/FaultType"
+        },
+        "confidence": {
+          "description": "Deterministic score from the causal engine, never a model estimate",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "causal_score": {
+          "description": "Attribution weight from the topology-constrained causal model",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Causal Score",
+          "type": "number"
+        },
+        "topology_path": {
+          "description": "Propagation path, cause first, symptom last",
+          "items": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Topology Path",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceItem"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "counterfactual": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counterfactual"
+        },
+        "skeptic_verdict": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skeptic Verdict"
+        }
+      },
+      "required": [
+        "rank",
+        "root_cause_component",
+        "fault_type",
+        "confidence",
+        "causal_score",
+        "topology_path",
+        "evidence"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "IncidentReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "incident_id": {
+          "pattern": "^INC-\\d{4,}$",
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "detected_at": {
+          "format": "date-time",
+          "title": "Detected At",
+          "type": "string"
+        },
+        "symptom": {
+          "minLength": 1,
+          "title": "Symptom",
+          "type": "string"
+        },
+        "symptom_component": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Symptom Component",
+          "type": "string"
+        },
+        "hypotheses": {
+          "items": {
+            "$ref": "#/$defs/Hypothesis"
+          },
+          "minItems": 1,
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "timeline": {
+          "items": {
+            "$ref": "#/$defs/TimelineEvent"
+          },
+          "minItems": 1,
+          "title": "Timeline",
+          "type": "array"
+        },
+        "narrative": {
+          "minLength": 1,
+          "title": "Narrative",
+          "type": "string"
+        },
+        "recommended_steps": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Recommended Steps",
+          "type": "array"
+        },
+        "audit_hash": {
+          "description": "Head of the SHA-256 incident audit chain",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Audit Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident_id",
+        "detected_at",
+        "symptom",
+        "symptom_component",
+        "hypotheses",
+        "timeline",
+        "narrative",
+        "recommended_steps",
+        "audit_hash"
+      ],
+      "title": "IncidentReport",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LogRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "template": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component_id",
+        "ts",
+        "severity",
+        "template"
+      ],
+      "title": "LogRecord",
+      "type": "object"
+    },
+    "RelationKind": {
+      "enum": [
+        "CONNECTED_TO",
+        "ROUTES_VIA",
+        "DEPENDS_ON"
+      ],
+      "title": "RelationKind",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "INFO",
+        "WARN",
+        "ERROR",
+        "CRITICAL"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "TelemetryPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "window_start": {
+          "format": "date-time",
+          "title": "Window Start",
+          "type": "string"
+        },
+        "latency_ms": {
+          "minimum": 0.0,
+          "title": "Latency Ms",
+          "type": "number"
+        },
+        "jitter_ms": {
+          "minimum": 0.0,
+          "title": "Jitter Ms",
+          "type": "number"
+        },
+        "packet_loss_pct": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Packet Loss Pct",
+          "type": "number"
+        },
+        "throughput_mbps": {
+          "minimum": 0.0,
+          "title": "Throughput Mbps",
+          "type": "number"
+        },
+        "error_rate": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Error Rate",
+          "type": "number"
+        },
+        "connection_count": {
+          "minimum": 0,
+          "title": "Connection Count",
+          "type": "integer"
+        },
+        "cpu_pct": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Cpu Pct",
+          "type": "number"
+        },
+        "mem_pct": {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Mem Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "component_id",
+        "window_start",
+        "latency_ms",
+        "jitter_ms",
+        "packet_loss_pct",
+        "throughput_mbps",
+        "error_rate",
+        "connection_count",
+        "cpu_pct",
+        "mem_pct"
+      ],
+      "title": "TelemetryPoint",
+      "type": "object"
+    },
+    "Tier": {
+      "enum": [
+        "edge",
+        "network",
+        "web",
+        "app",
+        "data"
+      ],
+      "title": "Tier",
+      "type": "string"
+    },
+    "TimelineEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "component_id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TimelineKind"
+        }
+      },
+      "required": [
+        "ts",
+        "component_id",
+        "description",
+        "kind"
+      ],
+      "title": "TimelineEvent",
+      "type": "object"
+    },
+    "TimelineKind": {
+      "enum": [
+        "config",
+        "alert",
+        "anomaly",
+        "log",
+        "propagation"
+      ],
+      "title": "TimelineKind",
+      "type": "string"
+    },
+    "Topology": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/Component"
+          },
+          "minItems": 1,
+          "title": "Components",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          },
+          "minItems": 1,
+          "title": "Dependencies",
+          "type": "array"
+        }
+      },
+      "required": [
+        "components",
+        "dependencies"
+      ],
+      "title": "Topology",
+      "type": "object"
+    },
+    "TrapKind": {
+      "enum": [
+        "temporal_proximity",
+        "correlated_signal"
+      ],
+      "title": "TrapKind",
+      "type": "string"
+    }
+  },
+  "title": "Network Anomaly Root-Cause Assistant \u2014 Contract Schemas",
+  "version": "1.0.0"
+}
