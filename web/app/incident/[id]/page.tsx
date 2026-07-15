@@ -37,6 +37,9 @@ export default function IncidentPage({ params }: PageProps) {
   const [drawerTier, setDrawerTier] = useState<string | null>(null);
   const [expandedTiers, setExpandedTiers] = useState<string[]>([]);
 
+  // Cinematic Breach Sequence State
+  const [isBreachSequence, setIsBreachSequence] = useState<boolean>(true);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -50,6 +53,8 @@ export default function IncidentPage({ params }: PageProps) {
         // Initialize timeline scrub range to the end of timeline
         setTimelineFilterIndex(incData.timeline.length - 1);
         setLoading(false);
+        setIsBreachSequence(true);
+        setTimeout(() => setIsBreachSequence(false), 2000); // 2-second cinematic reveal
       })
       .catch((err) => {
         if (!active) return;
@@ -177,8 +182,41 @@ export default function IncidentPage({ params }: PageProps) {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="min-h-screen bg-transparent text-white font-sans flex flex-col p-6 gap-6 selection:bg-[#E50914] selection:text-white"
+      className="min-h-screen bg-transparent text-white font-sans flex flex-col p-6 gap-6 selection:bg-[#E50914] selection:text-white relative"
     >
+      <AnimatePresence>
+        {isBreachSequence && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeOut" } }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0B0D] overflow-hidden pointer-events-none"
+          >
+            {/* Scanlines & Vignette */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] z-20 pointer-events-none opacity-50" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_120%)] z-10 opacity-90" />
+            
+            <motion.div 
+              initial={{ scale: 0.8, filter: "blur(10px)" }}
+              animate={{ scale: 1, filter: "blur(0px)" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="relative z-30 flex flex-col items-center gap-4"
+            >
+              <motion.div 
+                animate={{ opacity: [1, 0, 1, 0, 1], x: [0, -5, 5, -2, 0] }}
+                transition={{ duration: 0.5, times: [0, 0.2, 0.4, 0.6, 1] }}
+                className="text-5xl md:text-7xl font-black text-[#E50914] tracking-tighter mix-blend-screen drop-shadow-[0_0_20px_rgba(229,9,20,0.8)]"
+              >
+                SYSTEM BREACH DETECTED
+              </motion.div>
+              <div className="text-[#A3A3A8] text-sm tracking-[0.4em] font-bold uppercase animate-pulse">
+                Initiating Diagnostic Override...
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 1. HeaderBar */}
       <HeaderBar 
         incidentId={resolvedParams.id}
@@ -192,6 +230,8 @@ export default function IncidentPage({ params }: PageProps) {
         onScenarioLoaded={(incidentData, label) => {
           setIncident(incidentData);
           setTimelineFilterIndex(incidentData.timeline.length - 1);
+          setIsBreachSequence(true);
+          setTimeout(() => setIsBreachSequence(false), 2000);
         }}
         activeScenarioLabel={activeScenarioLabel}
         setActiveScenarioLabel={setActiveScenarioLabel}

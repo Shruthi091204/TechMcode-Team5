@@ -95,8 +95,8 @@ export default function IncidentDetailPanel({
               ) : (
                 <Database size={16} className={isRootCause ? "text-[#E50914]" : isOnPath ? "text-[#FFA53B]" : "text-[#A3A3A8]"} />
               )}
-              <span className="text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase">
-                {isCluster ? "CLUSTER DETAIL" : "NODE SPECIFIC INVESTIGATION"}
+              <span className="text-sm font-bold text-white tracking-wide">
+                {isCluster ? "Cluster Overview" : "Node Specific Investigation"}
               </span>
             </div>
             <h2 className="text-3xl font-black mt-1 text-white tracking-tighter" style={{ fontWeight: 900 }}>
@@ -148,8 +148,8 @@ export default function IncidentDetailPanel({
             <div className="flex flex-col gap-6">
               {/* TELEMETRY METRICS */}
               <div>
-                <div className="flex justify-between items-center text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase border-b border-[#2A2A2E] pb-2">
-                  <span>TELEMETRY SNAPSHOT</span>
+                <div className="flex justify-between items-center text-sm font-bold text-white tracking-wide border-b border-[#2A2A2E] pb-2">
+                  <span>Telemetry Snapshot</span>
                   <span className={`font-black uppercase tracking-wider ${
                     telemetry.status === "CRITICAL" ? "text-[#E50914]" : telemetry.status === "DEGRADED" ? "text-[#FFA53B]" : "text-[#2ECC71]"
                   }`}>
@@ -157,32 +157,32 @@ export default function IncidentDetailPanel({
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-3">
-                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3">
-                    <Cpu size={16} className="text-[#6B6B70]" />
+                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3 shadow-soft">
+                    <Cpu size={20} className="text-[#3B82F6]" />
                     <div>
-                      <div className="text-[10px] text-[#6B6B70] font-bold">CPU UTILIZATION</div>
-                      <div className="font-extrabold text-white text-sm">{telemetry.cpu}</div>
+                      <div className="text-[11px] text-[#A3A3A8] font-bold uppercase tracking-wide">CPU Utilization</div>
+                      <div className="font-black text-white text-base mt-0.5">{telemetry.cpu}</div>
                     </div>
                   </div>
-                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3">
-                    <Activity size={16} className="text-[#6B6B70]" />
+                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3 shadow-soft">
+                    <Activity size={20} className="text-[#3B82F6]" />
                     <div>
-                      <div className="text-[10px] text-[#6B6B70] font-bold">MEMORY USAGE</div>
-                      <div className="font-extrabold text-white text-sm">{telemetry.mem}</div>
+                      <div className="text-[11px] text-[#A3A3A8] font-bold uppercase tracking-wide">Memory Usage</div>
+                      <div className="font-black text-white text-base mt-0.5">{telemetry.mem}</div>
                     </div>
                   </div>
-                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3">
-                    <Activity size={16} className="text-[#6B6B70]" />
+                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3 shadow-soft">
+                    <Activity size={20} className="text-[#3B82F6]" />
                     <div>
-                      <div className="text-[10px] text-[#6B6B70] font-bold">P99 LATENCY</div>
-                      <div className="font-extrabold text-white text-sm">{telemetry.latency}</div>
+                      <div className="text-[11px] text-[#A3A3A8] font-bold uppercase tracking-wide">P99 Latency</div>
+                      <div className="font-black text-white text-base mt-0.5">{telemetry.latency}</div>
                     </div>
                   </div>
-                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3">
-                    <Activity size={16} className="text-[#6B6B70]" />
+                  <div className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-xl flex items-center gap-3 shadow-soft">
+                    <Activity size={20} className="text-[#3B82F6]" />
                     <div>
-                      <div className="text-[10px] text-[#6B6B70] font-bold">PACKET LOSS</div>
-                      <div className="font-extrabold text-white text-sm">{telemetry.loss}</div>
+                      <div className="text-[11px] text-[#A3A3A8] font-bold uppercase tracking-wide">Packet Loss</div>
+                      <div className="font-black text-white text-base mt-0.5">{telemetry.loss}</div>
                     </div>
                   </div>
                 </div>
@@ -190,17 +190,17 @@ export default function IncidentDetailPanel({
 
               {/* ACTIVE ALERTS */}
               <div>
-                <span className="text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase block border-b border-[#2A2A2E] pb-2">
-                  ACTIVE ALERTS ({componentAlerts.length})
+                <span className="text-sm font-bold text-white tracking-wide block border-b border-[#2A2A2E] pb-2">
+                  Active Alerts ({componentAlerts.length})
                 </span>
                 <div className="flex flex-col gap-2 mt-3">
                   {componentAlerts.length === 0 ? (
-                    <span className="text-xs text-[#6B6B70] italic">No active alerts triggered for this node.</span>
+                    <span className="text-sm text-[#6B6B70] italic">No active alerts triggered for this node.</span>
                   ) : (
                     componentAlerts.map((alert, idx) => (
                       <div key={idx} className="bg-[#E50914]/5 border border-[#E50914]/20 p-3 rounded-lg flex items-start gap-2.5">
                         <AlertTriangle size={15} className="text-[#E50914] shrink-0 mt-0.5" />
-                        <span className="text-white text-xs leading-relaxed">{alert.description}</span>
+                        <span className="text-[#EBEBF5] text-sm leading-relaxed">{alert.description}</span>
                       </div>
                     ))
                   )}
@@ -209,19 +209,19 @@ export default function IncidentDetailPanel({
 
               {/* RECENT LOG ENTRIES */}
               <div>
-                <span className="text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase block border-b border-[#2A2A2E] pb-2">
-                  RECENT LOG ENTRIES
+                <span className="text-sm font-bold text-white tracking-wide block border-b border-[#2A2A2E] pb-2">
+                  Recent Log Entries
                 </span>
                 <div className="flex flex-col gap-2 mt-3 max-h-[140px] overflow-y-auto pr-1">
                   {componentLogs.length === 0 ? (
-                    <span className="text-xs text-[#6B6B70] italic">No diagnostic logs found.</span>
+                    <span className="text-sm text-[#6B6B70] italic">No diagnostic logs found.</span>
                   ) : (
                     componentLogs.map((log, idx) => (
-                      <div key={idx} className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-lg text-xs leading-relaxed flex gap-2.5">
-                        <FileText size={14} className="text-[#6B6B70] shrink-0 mt-0.5" />
+                      <div key={idx} className="bg-[#1F1F24] border border-[#2A2A2E] p-3 rounded-lg text-sm leading-relaxed flex gap-2.5 shadow-soft">
+                        <FileText size={16} className="text-[#3B82F6] shrink-0 mt-0.5" />
                         <div>
-                          <span className="text-[#6B6B70] font-bold mr-2">[{log.ts}]</span>
-                          <span className="text-[#A3A3A8]">{log.description}</span>
+                          <span className="text-[#3B82F6] font-bold mr-2">[{log.ts}]</span>
+                          <span className="text-[#EBEBF5]">{log.description}</span>
                         </div>
                       </div>
                     ))
@@ -231,17 +231,17 @@ export default function IncidentDetailPanel({
 
               {/* CONFIGURATION AUDITS */}
               <div>
-                <span className="text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase block border-b border-[#2A2A2E] pb-2">
-                  CONFIGURATION AUDITS ({componentConfigs.length})
+                <span className="text-sm font-bold text-white tracking-wide block border-b border-[#2A2A2E] pb-2">
+                  Configuration Audits ({componentConfigs.length})
                 </span>
                 <div className="flex flex-col gap-2 mt-3">
                   {componentConfigs.length === 0 ? (
-                    <span className="text-xs text-[#6B6B70] italic">No configuration modifications tracked.</span>
+                    <span className="text-sm text-[#6B6B70] italic">No configuration modifications tracked.</span>
                   ) : (
                     componentConfigs.map((cfg, idx) => (
                       <div key={idx} className="bg-[#FFA53B]/5 border border-[#FFA53B]/20 p-3 rounded-lg flex items-start gap-2.5">
                         <Settings size={15} className="text-[#FFA53B] shrink-0 mt-0.5" />
-                        <span className="text-white text-xs leading-relaxed">{cfg.description}</span>
+                        <span className="text-[#EBEBF5] text-sm leading-relaxed">{cfg.description}</span>
                       </div>
                     ))
                   )}
