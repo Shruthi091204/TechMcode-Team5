@@ -12,9 +12,9 @@ for _entry in (str(_REPO_ROOT), str(_REPO_ROOT / "src")):
     if _entry not in sys.path:
         sys.path.insert(0, _entry)
 
-from contracts.schemas import Anomaly, TelemetryPoint
-from src.rca.detect.detector import detect_anomalies
-from src.rca.detect.window import build_metric_windows
+from contracts.schemas import Anomaly, TelemetryPoint  # noqa: E402
+from src.rca.detect.detector import detect_anomalies  # noqa: E402
+from src.rca.detect.window import build_metric_windows  # noqa: E402
 
 INCIDENTS_DIR = _REPO_ROOT / "incidents"
 RESULTS_MD = _REPO_ROOT / "eval" / "results.md"
@@ -231,8 +231,8 @@ def _write_results_md(
         "",
         "## Summary Metrics",
         "",
-        f"| Metric | Value |",
-        f"|---|---|",
+        "| Metric | Value |",
+        "|---|---|",
         f"| accuracy@1 | **{acc1:.1%}** ({sum(r.acc1 for r in results)}/{len(results)}) |",
         f"| accuracy@3 | **{acc3:.1%}** ({sum(r.acc3 for r in results)}/{len(results)}) |",
         f"| mean MTTD  | **{mttd_str}** |",

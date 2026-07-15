@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +17,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "contracts" / "fixtures"
 # Helpers
 # ---------------------------------------------------------------------------
 
-_UTC = timezone.utc
+_UTC = UTC
 
 
 def _make_window(
@@ -75,7 +75,7 @@ def test_single_observation_returns_none_no_crash() -> None:
 def test_zero_observations_not_possible_but_guard_works() -> None:
     # MetricWindow with empty values is prevented by build_metric_windows,
     # but the guard should still be safe if called directly.
-    base = datetime(2026, 1, 1, tzinfo=_UTC)
+    datetime(2026, 1, 1, tzinfo=_UTC)
     window = MetricWindow(
         component_id="x-01",
         metric="latency_ms",

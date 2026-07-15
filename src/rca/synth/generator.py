@@ -76,12 +76,14 @@ def pick_symptom(twin: TopologyTwin, topology: Topology, root: str) -> str | Non
 
 
 def _noisy(rng: random.Random, value: float) -> float:
-    return round(max(0.0, value * (1.0 + rng.uniform(-0.04, 0.04))), 4)
+    return round(max(0.0, value * (1.0 + rng.uniform(-0.01, 0.01))), 4)
 
 
-def _point(component_id: str, index: int, overrides: dict[str, float], rng: random.Random) -> TelemetryPoint:
-    fields = {key: _noisy(rng, value) for key, value in _BASELINE.items()}
-    fields.update(overrides)
+def _component_baseline(rng: random.Random) -> dict[str, float]:
+    return {key: _noisy(rng, value) for key, value in _BASELINE.items()}
+
+
+def _telemetry_point(component_id: str, index: int, fields: dict[str, float]) -> TelemetryPoint:
     return TelemetryPoint(
         component_id=component_id,
         window_start=_window_start(index),
@@ -116,18 +118,29 @@ def _telemetry(
     onset_of = {component: INJECTION_INDEX + position for position, component in enumerate(path)}
     points: list[TelemetryPoint] = []
     for component in (item.component_id for item in topology.components):
+        baseline = _component_baseline(rng)
         for index in range(WINDOW_COUNT):
-            overrides: dict[str, float] = {}
+            fields = dict(baseline)
             onset = onset_of.get(component)
             if onset is not None and index >= onset:
                 ramp = _ramp(index, onset)
                 reach = 1.0 if component == symptom else 0.7
-                overrides["latency_ms"] = _injected_latency(ramp, reach)
-                overrides["error_rate"] = round(min(0.9, _BASELINE["error_rate"] + ramp * 0.04), 4)
+                fields["latency_ms"] = _injected_latency(ramp, reach)
+                fields["error_rate"] = round(min(0.9, _BASELINE["error_rate"] + ramp * 0.04), 4)
                 if component == root:
-                    overrides[metric_field] = anomalous_value
-                    overrides["latency_ms"] = _injected_latency(ramp, 1.0)
-            points.append(_point(component, index, overrides, rng))
+                    fields[metric_field] = anomalous_value
+                    fields["latency_ms"] = _injected_latency(ramp, 1.0)
+            points.append(_telemetry_point(component, index, fields))
+    return points
+
+
+def generate_healthy(topology: Topology, seed: int = 0) -> list[TelemetryPoint]:
+    rng = random.Random(seed)
+    points: list[TelemetryPoint] = []
+    for component in (item.component_id for item in topology.components):
+        baseline = _component_baseline(rng)
+        for index in range(WINDOW_COUNT):
+            points.append(_telemetry_point(component, index, dict(baseline)))
     return points
 
 

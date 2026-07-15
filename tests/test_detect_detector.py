@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -15,7 +15,7 @@ from src.rca.detect.window import MetricWindow, build_metric_windows
 from src.rca.ingest.csv_adapter import load_telemetry_csv
 
 FIXTURES = Path(__file__).resolve().parents[1] / "contracts" / "fixtures"
-_UTC = timezone.utc
+_UTC = UTC
 
 
 # ---------------------------------------------------------------------------
@@ -228,10 +228,7 @@ def test_severity_follows_pre_onset_mad_formula():
     post = window.values[bp:]
     bl = compute_mad_scores(pre)
     observed = float(np.mean(post))
-    if bl.mad > 0.0:
-        expected_severity = abs(observed - bl.median) / bl.mad
-    else:
-        expected_severity = abs(observed - bl.median)
+    expected_severity = abs(observed - bl.median) / bl.mad if bl.mad > 0.0 else abs(observed - bl.median)
     assert math.isclose(a.severity_score, expected_severity, rel_tol=1e-9)
 
 
@@ -421,10 +418,7 @@ def test_fixture_db01_connection_count_severity_matches_pre_onset_formula():
     post = db01_cc.values[cp.breakpoint_index :]
     bl = compute_mad_scores(pre)
     observed = float(np.mean(post))
-    if bl.mad > 0.0:
-        expected_severity = abs(observed - bl.median) / bl.mad
-    else:
-        expected_severity = abs(observed - bl.median)
+    expected_severity = abs(observed - bl.median) / bl.mad if bl.mad > 0.0 else abs(observed - bl.median)
 
     assert math.isclose(a.severity_score, expected_severity, rel_tol=1e-9)
 

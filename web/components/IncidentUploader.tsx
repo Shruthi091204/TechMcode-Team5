@@ -27,13 +27,27 @@ export default function IncidentUploader() {
     setError(null);
     setStatus(enriched ? `${label} — running full AI investigation (~40s)…` : `${label} — analyzing…`);
     try {
-      const report: IncidentReport = await analyzeIncident(payload, !enriched);
+      const result = await analyzeIncident(payload, !enriched);
+      if ("status" in result && result.status === "healthy") {
+        const healthyTopo = payload.topology ?? { components: [], dependencies: [] };
+        sessionStorage.setItem(
+          "healthy:latest",
+          JSON.stringify({
+            result,
+            topology: { components: healthyTopo.components ?? [], dependencies: healthyTopo.dependencies ?? [] },
+          }),
+        );
+        router.push("/healthy");
+        return;
+      }
+      const report = result as IncidentReport;
       const topo = payload.topology ?? { components: [], dependencies: [] };
       sessionStorage.setItem(
         `analyzed:${report.incident_id}`,
         JSON.stringify({
           report,
           topology: { components: topo.components ?? [], dependencies: topo.dependencies ?? [] },
+          telemetry: payload.telemetry ?? [],
         }),
       );
       router.push(`/incident/${report.incident_id}`);

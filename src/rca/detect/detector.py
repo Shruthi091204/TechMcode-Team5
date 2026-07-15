@@ -89,10 +89,7 @@ def detect_anomalies(
 
         observed_value = float(np.mean(post))
 
-        if bl.mad > 0.0:
-            severity = abs(observed_value - bl.median) / bl.mad
-        else:
-            severity = abs(observed_value - bl.median)
+        severity = abs(observed_value - bl.median) / bl.mad if bl.mad > 0.0 else abs(observed_value - bl.median)
 
         if severity < min_severity:
             continue

@@ -8,7 +8,7 @@ import { Component, Dependency, IncidentReport } from "../lib/types";
 
 interface TopologyGraphProps {
   topology: { components: Component[]; dependencies: Dependency[] };
-  incident: IncidentReport;
+  incident?: IncidentReport;
   highlightActive?: boolean;
   expandedTiers?: string[];
   onNodeClick?: (nodeId: string, isCluster: boolean, tier: string | null) => void;
@@ -25,7 +25,7 @@ export default function TopologyGraph({
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [rootPos, setRootPos] = useState({ x: -999, y: -999 });
 
-  const activeHypothesis = incident.hypotheses.find((h) => h.rank === 1);
+  const activeHypothesis = incident?.hypotheses?.find((h) => h.rank === 1);
   const rootCauseId = activeHypothesis?.root_cause_component || "";
   const pathNodes = React.useMemo(() => activeHypothesis?.topology_path || [], [activeHypothesis?.topology_path]);
 
@@ -246,7 +246,7 @@ export default function TopologyGraph({
           style: {
             "background-color": (ele: any) => {
               const data = ele.data();
-              if (data.isCluster) return "#1F1F24"; // --bg-panel-raised
+              if (data.isCluster) return "#1E8449"; // healthy cluster of unaffected nodes
               if (data.isRoot && highlightActive) return "#E50914"; // --accent-red
               if (data.isRoot) return "#5c050a";
               if (data.isOnPath) {
@@ -256,14 +256,7 @@ export default function TopologyGraph({
                 return "#F5D547";
               }
 
-              const tierColors = {
-                edge: "#1F1F24",
-                network: "#1F1F24",
-                web: "#1F1F24",
-                app: "#1F1F24",
-                data: "#1F1F24",
-              };
-              return tierColors[data.tier as keyof typeof tierColors] || "#16161A";
+              return "#1E8449"; // healthy / unaffected node
             },
             label: "data(label)",
             color: (ele: any) => {
@@ -376,6 +369,10 @@ export default function TopologyGraph({
     // Fit graph viewport to use the full canvas space beautifully
     cy.fit(undefined, 30);
 
+    // Lock zoom-out so the graph can never shrink into invisibility
+    cy.minZoom(cy.zoom() * 0.8);
+    cy.maxZoom(3);
+
     // Track root cause node position for HTML overlay pulse
     cy.on("render", () => {
       const rootNode = cy.getElementById(rootCauseId);
@@ -427,8 +424,17 @@ export default function TopologyGraph({
     <div className="relative w-full h-full scanline-grid border border-border-muted">
       {/* NOC Header */}
       <div className="absolute top-3 left-3 z-10 font-mono text-[10px] text-grey-muted select-none flex items-center gap-2">
-        <span className="inline-block w-1.5 h-1.5 bg-red-critical rounded-full animate-ping"></span>
-        <span>TOPOLOGY_ENGINE // ROOT_CAUSE_SUSPECT: <span className="text-red-critical text-status-glow font-bold font-mono">{rootCauseId}</span></span>
+        {highlightActive ? (
+          <>
+            <span className="inline-block w-1.5 h-1.5 bg-red-critical rounded-full animate-ping"></span>
+            <span>TOPOLOGY_ENGINE // ROOT_CAUSE_SUSPECT: <span className="text-red-critical text-status-glow font-bold font-mono">{rootCauseId}</span></span>
+          </>
+        ) : (
+          <>
+            <span className="inline-block w-1.5 h-1.5 bg-[#2ECC71] rounded-full animate-pulse"></span>
+            <span>TOPOLOGY_ENGINE // STATUS: <span className="text-[#2ECC71] font-bold font-mono">ALL NOMINAL</span></span>
+          </>
+        )}
       </div>
 
       {/* Cytoscape element */}

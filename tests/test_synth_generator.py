@@ -24,7 +24,7 @@ def test_generator_recovers_config_pool_exhaustion() -> None:
 
 
 def test_generator_recovers_capacity_exhaustion() -> None:
-    assert _recovers("cache-01", FaultType.CAPACITY_EXHAUSTION)
+    assert _recovers("app-04", FaultType.CAPACITY_EXHAUSTION)
 
 
 def test_generator_recovers_bad_config_push() -> None:

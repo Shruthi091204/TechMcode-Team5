@@ -1,9 +1,11 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
 from contracts.schemas import Hypothesis, IncidentReport
 from rca.agents.investigator import investigate_incident
 

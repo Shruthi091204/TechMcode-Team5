@@ -20,6 +20,7 @@ export default function IncidentPage({ params }: PageProps) {
   const [selectedRank, setSelectedRank] = useState<number>(1);
   const [incident, setIncident] = useState<IncidentReport | null>(null);
   const [topology, setTopology] = useState<{ components: Component[]; dependencies: Dependency[] } | null>(null);
+  const [telemetry, setTelemetry] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ export default function IncidentPage({ params }: PageProps) {
         const parsed = JSON.parse(uploaded);
         setIncident(parsed.report);
         setTopology(parsed.topology);
+        setTelemetry(parsed.telemetry || []);
         setTimelineFilterIndex(parsed.report.timeline.length - 1);
         setLoading(false);
         setIsBreachSequence(true);
@@ -295,6 +297,7 @@ export default function IncidentPage({ params }: PageProps) {
               isCluster={drawerIsCluster}
               tier={drawerTier}
               topology={topology}
+              telemetryData={telemetry}
               incident={filteredIncidentView}
               onExpandTier={(tier) => setExpandedTiers((prev) => Array.from(new Set([...prev, tier])))}
               pathNodes={pathNodes}

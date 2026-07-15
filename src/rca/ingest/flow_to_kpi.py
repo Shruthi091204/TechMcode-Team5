@@ -4,7 +4,7 @@ import csv
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from contracts.schemas import TelemetryPoint
@@ -36,7 +36,7 @@ class FlowRecord:
 def _floor_to_window(epoch: float, window_seconds: int) -> datetime:
     """Return the UTC datetime of the window boundary containing *epoch*."""
     boundary = int(epoch) // window_seconds * window_seconds
-    return datetime.fromtimestamp(boundary, tz=timezone.utc)
+    return datetime.fromtimestamp(boundary, tz=UTC)
 
 
 def _compute_kpis(

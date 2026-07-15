@@ -48,7 +48,18 @@ export async function getAuditVerification(): Promise<any> {
   return await response.json();
 }
 
-export async function analyzeIncident(payload: unknown, fast: boolean = false): Promise<IncidentReport> {
+export interface HealthyResult {
+  status: "healthy";
+  components_analyzed: number;
+  telemetry_windows: number;
+  metrics_evaluated: string[];
+  message: string;
+}
+
+export async function analyzeIncident(
+  payload: unknown,
+  fast: boolean = false,
+): Promise<IncidentReport | HealthyResult> {
   const url = `${API_BASE_URL}/analyze${fast ? "?fast=true" : ""}`;
   const response = await fetch(url, {
     method: "POST",

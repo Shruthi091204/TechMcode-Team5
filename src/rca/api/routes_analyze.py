@@ -16,7 +16,7 @@ from rca.agents.investigator import investigate_incident
 from rca.agents.remediation import generate_remediation_steps
 from rca.agents.skeptic import run_storm_verification
 from rca.audit.chain import append_audit_event
-from rca.pipeline import LiveIncident, build_incident_from_data
+from rca.pipeline import ANOMALY_METRICS, LiveIncident, build_incident_from_data
 
 router = APIRouter()
 
@@ -31,19 +31,24 @@ class AnalyzeRequest(BaseModel):
     incident_id: str | None = None
 
 
+class HealthyResult(BaseModel):
+    status: str = "healthy"
+    components_analyzed: int
+    telemetry_windows: int
+    metrics_evaluated: list[str]
+    message: str
+
+
 def _rank_incident(request: AnalyzeRequest) -> LiveIncident:
-    try:
-        return build_incident_from_data(
-            topology=request.topology,
-            telemetry_points=request.telemetry,
-            logs=request.logs,
-            alerts=request.alerts,
-            changes=request.config_changes,
-            symptom_id=request.symptom_component,
-            incident_id=request.incident_id,
-        )
-    except ValueError as engine_error:
-        raise HTTPException(status_code=422, detail=str(engine_error)) from engine_error
+    return build_incident_from_data(
+        topology=request.topology,
+        telemetry_points=request.telemetry,
+        logs=request.logs,
+        alerts=request.alerts,
+        changes=request.config_changes,
+        symptom_id=request.symptom_component,
+        incident_id=request.incident_id,
+    )
 
 
 def _build_timeline(request: AnalyzeRequest, incident: LiveIncident) -> list[TimelineEvent]:
@@ -161,9 +166,20 @@ def _enriched_report(incident: LiveIncident) -> IncidentReport:
     )
 
 
-@router.post("/analyze", response_model=IncidentReport)
-def analyze_uploaded_incident(request: AnalyzeRequest, fast: bool = False) -> IncidentReport:
-    incident = _rank_incident(request)
+@router.post("/analyze", response_model=None)
+def analyze_uploaded_incident(request: AnalyzeRequest, fast: bool = False) -> IncidentReport | HealthyResult:
+    try:
+        incident = _rank_incident(request)
+    except ValueError as engine_error:
+        if "no anomalies" in str(engine_error).lower():
+            return HealthyResult(
+                components_analyzed=len(request.topology.components),
+                telemetry_windows=len({point.window_start for point in request.telemetry}),
+                metrics_evaluated=list(ANOMALY_METRICS),
+                message="No anomalies detected — all monitored components are within baseline.",
+            )
+        raise HTTPException(status_code=422, detail=str(engine_error)) from engine_error
+
     if fast:
         return _deterministic_report(request, incident)
     try:

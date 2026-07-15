@@ -16,12 +16,12 @@ RESULTS_MD = _ROOT / "eval" / "synth_results.md"
 
 SCENARIOS: list[tuple[str, FaultType]] = [
     ("db-01", FaultType.CONFIG_POOL_EXHAUSTION),
-    ("cache-01", FaultType.CAPACITY_EXHAUSTION),
-    ("cache-02", FaultType.DDOS_FLOOD),
     ("app-03", FaultType.BAD_CONFIG_PUSH),
-    ("app-07", FaultType.CAPACITY_EXHAUSTION),
+    ("app-04", FaultType.CAPACITY_EXHAUSTION),
+    ("app-06", FaultType.DDOS_FLOOD),
+    ("app-05", FaultType.NIC_FAILURE),
     ("app-09", FaultType.LINK_DEGRADATION),
-    ("mq-01", FaultType.DDOS_FLOOD),
+    ("app-08", FaultType.PORT_SCAN),
     ("dns-01", FaultType.BAD_CONFIG_PUSH),
 ]
 

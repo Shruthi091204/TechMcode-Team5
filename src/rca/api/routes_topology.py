@@ -1,7 +1,9 @@
 import json
 from functools import lru_cache
 from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
+
 from contracts.schemas import Topology
 
 router = APIRouter()

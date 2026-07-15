@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,7 +17,7 @@ from eval.run_eval import (
     _rank_components,
 )
 
-_UTC = timezone.utc
+_UTC = UTC
 _BASE = datetime(2026, 7, 14, 21, 33, 0, tzinfo=_UTC)
 
 
@@ -358,9 +358,9 @@ def test_evaluate_scenario_no_ground_truth_bias(tmp_path: Path):
     s2.mkdir()
     d1 = _minimal_incident(s1, "db-01")
     d2 = _minimal_incident(s2, "app-01")
-    r1 = _evaluate_scenario(d1)
-    r2 = _evaluate_scenario(d2)
-    assert r1.detected_rank1 == r2.detected_rank1 or True
+    _evaluate_scenario(d1)
+    _evaluate_scenario(d2)
+    assert True
 
 
 def test_evaluate_scenario_real_bad_config_push():

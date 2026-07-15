@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
+
 from pydantic import BaseModel
+
 from rca.audit.chain import DEFAULT_AUDIT_LOG_PATH, GENESIS_HASH, compute_entry_hash
 
 
@@ -54,7 +56,10 @@ def verify_audit_chain(file_path: Path = DEFAULT_AUDIT_LOG_PATH) -> AuditVerific
                 is_valid=False,
                 total_events=len(raw_lines),
                 failed_at_index=index,
-                failure_reason=f"Chain broken at line {index + 1}: expected prev_hash {expected_prev_hash}, found {recorded_prev_hash}",
+                failure_reason=(
+                    f"Chain broken at line {index + 1}: "
+                    f"expected prev_hash {expected_prev_hash}, found {recorded_prev_hash}"
+                ),
             )
 
         recomputed_hash = compute_entry_hash(recorded_prev_hash, timestamp_iso, event_type, payload_json)

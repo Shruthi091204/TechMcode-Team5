@@ -9,43 +9,42 @@ interface MetricStripProps {
 }
 
 export default function MetricStrip({ incident }: MetricStripProps) {
-  // Compute metric values based on incident timeline/state
-  const telemetryValue = "138.4 ms";
-  const telemetryStatus = "+480% DEVIATION";
-  
-  const logsValue = "15.4K Ingested";
-  const logsStatus = "3 CRITICAL ERRORS";
-  
-  const alertsValue = "3 ACTIVE";
-  const alertsStatus = "CRITICAL SEVERITY";
-  
-  const configsValue = "3 Tracked";
-  const configsStatus = "CHG-4212 REDUCTION";
+  // Derived from the actual incident report — not hardcoded
+  const timeline = incident.timeline || [];
+  const logCount = timeline.filter((event) => event.kind === "log").length;
+  const alertCount = timeline.filter((event) => event.kind === "alert").length;
+  const configEvents = timeline.filter((event) => event.kind === "config");
+  const configId = configEvents[0]?.description.match(/CHG-\d+/)?.[0];
+
+  const latencyMatch = incident.symptom?.match(/([\d.]+)\s*ms/);
+  const deviationMatch = incident.symptom?.match(/([+-]?\d+)\s*%/);
+  const telemetryValue = latencyMatch ? `${latencyMatch[1]} ms` : incident.symptom_component;
+  const telemetryStatus = deviationMatch ? `${deviationMatch[1]}% Deviation` : "Baseline breach";
 
   const cards = [
     {
       label: "Telemetry",
       value: telemetryValue,
-      status: "+480% Deviation",
-      severity: "critical", // red + glow
+      status: telemetryStatus,
+      severity: "critical",
     },
     {
       label: "Logs",
-      value: logsValue,
-      status: "3 Critical Errors",
-      severity: "critical", // red + glow
+      value: `${logCount}`,
+      status: logCount ? `${logCount} log event${logCount === 1 ? "" : "s"}` : "No log events",
+      severity: logCount ? "critical" : "normal",
     },
     {
       label: "Alerts",
-      value: alertsValue,
-      status: "Critical Severity",
-      severity: "critical", // red + glow
+      value: `${alertCount} Active`,
+      status: alertCount ? "Threshold breaches" : "None active",
+      severity: alertCount ? "critical" : "normal",
     },
     {
       label: "Config Changes",
-      value: configsValue,
-      status: "CHG-4212 Reduction",
-      severity: "elevated", // amber
+      value: `${configEvents.length} Tracked`,
+      status: configId || (configEvents.length ? "Change tracked" : "None tracked"),
+      severity: configEvents.length ? "elevated" : "normal",
     },
   ];
 
