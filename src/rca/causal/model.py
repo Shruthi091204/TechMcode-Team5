@@ -5,6 +5,7 @@ import io
 import warnings
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 
 from rca.graph.twin import TopologyTwin
@@ -76,6 +77,7 @@ def _dowhy_attribution(
     from dowhy import gcm
 
     gcm.config.disable_progress_bars()
+    np.random.seed(0)
 
     nodes = relevant_nodes(twin, candidates, symptom_id)
     frame = _signal_frame(telemetry, nodes)
