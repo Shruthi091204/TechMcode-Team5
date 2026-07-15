@@ -1,6 +1,8 @@
 import json
 from typing import Any
+
 from pydantic import BaseModel, Field
+
 from contracts.schemas import EvidenceKind, Hypothesis
 from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
 
@@ -13,8 +15,10 @@ def build_remediation_system_prompt() -> str:
     return (
         "You are a Senior Network Incident Commander. "
         "Your task is to provide concrete, actionable diagnostic and remediation steps for a network incident. "
-        "CRITICAL CONSTRAINT: You must ground your recommended diagnostic steps strictly in the provided list of 'missing evidence'. "
-        "Do not invent diagnostic checks for components or layers not mentioned in the missing evidence or root-cause path. "
+        "CRITICAL CONSTRAINT: You must ground your recommended diagnostic steps "
+        "strictly in the provided list of 'missing evidence'. "
+        "Do not invent diagnostic checks for components or layers "
+        "not mentioned in the missing evidence or root-cause path. "
         "Convert each missing evidence statement into a specific operational command or verification step."
     )
 
@@ -73,7 +77,7 @@ def generate_remediation_steps(leading_hypothesis: Hypothesis) -> list[str]:
             thinking=THINKING_CONFIG,
             output_config={
                 "effort": OUTPUT_CONFIG["effort"],
-                "format": RemediationPlan.model_json_schema(),
+                "format": {"type": "json_schema", "schema": RemediationPlan.model_json_schema()},
             },
             tools=[],
             messages=[{"role": "user", "content": user_prompt}],

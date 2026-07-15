@@ -52,7 +52,11 @@ def main():
     # Hardcoding the mapping for the MVP script; can be pulled from the .sh file later
     component_mapping = {
         "link_degradation": ("db-01", "network_delay_loss"),
-        "bad_config_push": ("web-01", "config_misconfiguration")
+        "bad_config_push": ("web-01", "config_misconfiguration"),
+        "nic_failure": ("app-01", "interface_down"),
+        "capacity_exhaustion": ("db-01", "resource_starvation"),
+        "ddos_flood": ("lb-01", "traffic_spike"),
+        "port_scan": ("lb-01", "security_scan")
     }
 
     target_comp, fault_type = component_mapping.get(scenario_name, ("unknown", "unknown"))
