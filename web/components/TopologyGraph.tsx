@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
 import { Component, Dependency, IncidentReport } from "../lib/types";
 
@@ -23,6 +23,7 @@ export default function TopologyGraph({
 }: TopologyGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const [rootPos, setRootPos] = useState({ x: -999, y: -999 });
 
   const activeHypothesis = incident.hypotheses.find((h) => h.rank === 1);
   const rootCauseId = activeHypothesis?.root_cause_component || "";
@@ -344,6 +345,8 @@ export default function TopologyGraph({
           selector: "edge",
           style: {
             width: (ele: any) => (ele.data("isOnPath") && highlightActive ? 3 : 1),
+            "line-style": (ele: any) => (ele.data("isOnPath") && highlightActive ? "dashed" : "solid"),
+            "line-dash-pattern": [6, 4],
             opacity: (ele: any) => {
               const data = ele.data();
               if (!highlightActive) return 1.0;
@@ -373,6 +376,26 @@ export default function TopologyGraph({
     // Fit graph viewport to use the full canvas space beautifully
     cy.fit(undefined, 30);
 
+    // Track root cause node position for HTML overlay pulse
+    cy.on("render", () => {
+      const rootNode = cy.getElementById(rootCauseId);
+      if (rootNode && rootNode.length > 0) {
+        setRootPos(rootNode.renderedPosition());
+      }
+    });
+
+    // Marching ants animation loop for path edges
+    let animationFrameId: number;
+    let dashOffset = 0;
+    const animateEdges = () => {
+      dashOffset -= 0.5; // Flow speed
+      cy.edges('[?isOnPath]').style('line-dash-offset', dashOffset);
+      animationFrameId = requestAnimationFrame(animateEdges);
+    };
+    if (highlightActive) {
+      animateEdges();
+    }
+
     // Listen for node click events to trigger sidebar detail drawer
     cy.on("tap", "node", (evt) => {
       const node = evt.target;
@@ -383,6 +406,7 @@ export default function TopologyGraph({
     cyRef.current = cy;
 
     return () => {
+      cancelAnimationFrame(animationFrameId);
       if (cyRef.current) {
         try {
           let limit = 100;
@@ -409,6 +433,20 @@ export default function TopologyGraph({
 
       {/* Cytoscape element */}
       <div ref={containerRef} className="w-full h-full animate-[fade-in_0.5s_ease-out]" />
+
+      {/* Cinematic Pulsing Radar Ping Overlay for Root Cause */}
+      {highlightActive && rootCauseId && rootPos.x !== -999 && (
+        <div 
+          className="absolute pointer-events-none rounded-full border border-[#E50914] animate-ping"
+          style={{
+            left: rootPos.x - 40,
+            top: rootPos.y - 40,
+            width: 80,
+            height: 80,
+            opacity: 0.8
+          }}
+        />
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-3 left-3 right-3 z-10 font-mono text-[9px] text-grey-muted flex flex-wrap gap-x-4 gap-y-1 bg-panel/90 backdrop-blur border border-border-muted px-2 py-1.5 rounded">

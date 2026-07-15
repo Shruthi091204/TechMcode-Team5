@@ -1,11 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion as m } from "framer-motion";
-import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp, Pause } from "lucide-react";
 import { IncidentReport, TimelineEvent } from "../lib/types";
 import CounterfactualPanel from "./CounterfactualPanel";
 import SkepticTranscript from "./SkepticTranscript";
+
+// Typewriter Component for cinematic text reveal
+const TypewriterText = ({ text, delay = 0, speed = 15 }: { text: string; delay?: number; speed?: number }) => {
+  const [displayed, setDisplayed] = useState("");
+
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const timeout = setTimeout(() => {
+      const interval = setInterval(() => {
+        setDisplayed(text.slice(0, i));
+        i++;
+        if (i > text.length) clearInterval(interval);
+      }, speed);
+      return () => clearInterval(interval);
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [text, delay, speed]);
+
+  return (
+    <span>
+      {displayed}
+      {displayed.length < text.length && <span className="animate-pulse bg-[#E50914] w-1.5 h-3.5 inline-block ml-0.5 align-middle" />}
+    </span>
+  );
+};
 
 interface InvestigationTabsProps {
   incident: IncidentReport;
@@ -21,6 +47,24 @@ export default function InvestigationTabs({
   setTimelineFilterIndex,
 }: InvestigationTabsProps) {
   const [expandedBox, setExpandedBox] = useState<"investigation" | "evidence" | "timeline" | "actions" | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+
+  // Auto-Scrubber Logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setTimelineFilterIndex((prev: number) => {
+          if (prev >= incident.timeline.length - 1) {
+            setIsPlaying(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1200); // 1.2s per cinematic tick
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, incident.timeline.length, setTimelineFilterIndex]);
 
   const evidenceItems = activeHypothesis?.evidence || [];
   const confirmed = evidenceItems.filter((item: any) => item.kind === "confirmed");
@@ -134,29 +178,31 @@ export default function InvestigationTabs({
               {expandedBox === "investigation" && (
                 <div className="flex flex-col gap-6">
                   <div>
-                    <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8] mb-3">AI GENERATED NARRATIVE</h3>
-                    <div className="text-sm leading-relaxed text-[#A3A3A8] bg-[#1F1F24] p-5 border border-[#2A2A2E] rounded-xl shadow-soft">
-                      {incident.narrative}
+                    <h3 className="text-sm font-bold text-white mb-3 tracking-wide">AI Generated Narrative</h3>
+                    <div className="text-[14px] leading-relaxed text-[#D1D1D6] bg-[#2D1B4E]/30 p-5 border border-[#9b51e0]/40 rounded-xl shadow-[0_0_15px_rgba(155,81,224,0.15)] min-h-[100px]">
+                      <TypewriterText text={incident.narrative} speed={8} />
                     </div>
                   </div>
 
                   <div className="border-t border-[#2A2A2E]/50 pt-5">
-                    <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8] mb-4">CRITICAL VALIDATION TRANSCRIPT</h3>
+                    <h3 className="text-sm font-bold text-white mb-4 tracking-wide">Critical Validation Transcript</h3>
                     <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
                       {transcript.map((chat, idx) => (
                         <div 
                           key={idx} 
                           className={`flex flex-col max-w-[80%] p-4 rounded-xl border ${
                             chat.isSkeptic 
-                              ? "self-end bg-[#FFA53B]/5 border-[#FFA53B]/20 text-white" 
-                              : "self-start bg-[#1F1F24] border-[#2A2A2E] text-white"
+                              ? "self-end bg-[#FFA53B]/10 border-[#FFA53B]/30 text-white" 
+                              : "self-start bg-[#2D1B4E]/30 border-[#9b51e0]/40 text-white"
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-6 text-[9px] text-[#6B6B70] font-bold tracking-wider uppercase mb-1">
-                            <span className={chat.isSkeptic ? "text-[#FFA53B]" : "text-white"}>{chat.speaker}</span>
+                          <div className="flex items-center justify-between gap-6 text-[10px] text-[#A3A3A8] font-bold tracking-wider uppercase mb-1.5">
+                            <span className={chat.isSkeptic ? "text-[#FFA53B]" : "text-[#9b51e0]"}>{chat.speaker}</span>
                             <span>{chat.time}</span>
                           </div>
-                          <p className="text-xs leading-relaxed text-[#A3A3A8]">{chat.message}</p>
+                          <p className="text-[13px] leading-relaxed text-[#EBEBF5]">
+                            <TypewriterText text={chat.message} delay={(idx + 1) * 800} speed={10} />
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -167,23 +213,23 @@ export default function InvestigationTabs({
               {/* EVIDENCE LEDGER PANEL */}
               {expandedBox === "evidence" && (
                 <div>
-                  <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8] mb-4">VERIFIED EVIDENCE LEDGER</h3>
+                  <h3 className="text-sm font-bold text-white mb-4 tracking-wide">Verified Evidence Ledger</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Confirmed Column */}
                     <div className="bg-[#1F1F24] border border-[#2A2A2E] rounded-xl overflow-hidden shadow-soft flex flex-col">
                       <div className="px-4 py-3 bg-[#1F1F24] border-b border-[#2A2A2E] flex justify-between items-center">
                         <span className="text-xs font-bold text-[#2ECC71]">CONFIRMED</span>
-                        <span className="text-[10px] text-[#6B6B70] font-bold">{confirmed.length} ITEMS</span>
+                        <span className="text-[10px] text-[#A3A3A8] font-bold">{confirmed.length} ITEMS</span>
                       </div>
                       <div className="p-4 flex flex-col gap-3 max-h-[250px] overflow-y-auto">
                         {confirmed.length === 0 ? (
-                          <span className="text-xs text-[#6B6B70] italic">No confirmed evidence.</span>
+                          <span className="text-sm text-[#6B6B70] italic">No confirmed evidence.</span>
                         ) : (
                           confirmed.map((item: any, idx: number) => (
-                            <div key={idx} className="text-xs border-l-2 border-[#2ECC71] pl-3 py-1">
-                              <div className="text-white font-medium">{item.statement}</div>
-                              <div className="text-[9px] text-[#6B6B70] mt-1 font-semibold uppercase">
-                                SOURCE: {item.source} {item.ref && `| REF: ${item.ref}`}
+                            <div key={idx} className="text-sm border-l-2 border-[#2ECC71] pl-3 py-1">
+                              <div className="text-[#EBEBF5] font-medium">{item.statement}</div>
+                              <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">
+                                Source: {item.source} {item.ref && `| Ref: ${item.ref}`}
                               </div>
                             </div>
                           ))
@@ -195,17 +241,17 @@ export default function InvestigationTabs({
                     <div className="bg-[#1F1F24] border border-[#2A2A2E] rounded-xl overflow-hidden shadow-soft flex flex-col">
                       <div className="px-4 py-3 bg-[#1F1F24] border-b border-[#2A2A2E] flex justify-between items-center">
                         <span className="text-xs font-bold text-[#FFA53B]">CORRELATED</span>
-                        <span className="text-[10px] text-[#6B6B70] font-bold">{correlated.length} ITEMS</span>
+                        <span className="text-[10px] text-[#A3A3A8] font-bold">{correlated.length} ITEMS</span>
                       </div>
                       <div className="p-4 flex flex-col gap-3 max-h-[250px] overflow-y-auto">
                         {correlated.length === 0 ? (
-                          <span className="text-xs text-[#6B6B70] italic">No correlated evidence.</span>
+                          <span className="text-sm text-[#6B6B70] italic">No correlated evidence.</span>
                         ) : (
                           correlated.map((item: any, idx: number) => (
-                            <div key={idx} className="text-xs border-l-2 border-[#FFA53B] pl-3 py-1">
-                              <div className="text-white font-medium">{item.statement}</div>
-                              <div className="text-[9px] text-[#6B6B70] mt-1 font-semibold uppercase">
-                                SOURCE: {item.source} {item.ref && `| REF: ${item.ref}`}
+                            <div key={idx} className="text-sm border-l-2 border-[#FFA53B] pl-3 py-1">
+                              <div className="text-[#EBEBF5] font-medium">{item.statement}</div>
+                              <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">
+                                Source: {item.source} {item.ref && `| Ref: ${item.ref}`}
                               </div>
                             </div>
                           ))
@@ -216,18 +262,18 @@ export default function InvestigationTabs({
                     {/* Missing Column */}
                     <div className="bg-[#1F1F24] border border-[#2A2A2E] rounded-xl overflow-hidden shadow-soft flex flex-col">
                       <div className="px-4 py-3 bg-[#1F1F24] border-b border-[#2A2A2E] flex justify-between items-center">
-                        <span className="text-xs font-bold text-[#6B6B70]">MISSING</span>
-                        <span className="text-[10px] text-[#6B6B70] font-bold">{missing.length} ITEMS</span>
+                        <span className="text-xs font-bold text-[#3B82F6]">MISSING DATA</span>
+                        <span className="text-[10px] text-[#A3A3A8] font-bold">{missing.length} ITEMS</span>
                       </div>
                       <div className="p-4 flex flex-col gap-3 max-h-[250px] overflow-y-auto">
                         {missing.length === 0 ? (
-                          <span className="text-xs text-[#6B6B70] italic">No missing evidence.</span>
+                          <span className="text-sm text-[#6B6B70] italic">No missing evidence.</span>
                         ) : (
                           missing.map((item: any, idx: number) => (
-                            <div key={idx} className="text-xs border-l-2 border-[#2A2A2E] pl-3 py-1">
+                            <div key={idx} className="text-sm border-l-2 border-[#3B82F6] pl-3 py-1">
                               <div className="text-[#A3A3A8]">{item.statement}</div>
-                              <div className="text-[9px] text-[#6B6B70]/60 mt-1 font-semibold uppercase">
-                                SOURCE: {item.source}
+                              <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">
+                                Source: {item.source}
                               </div>
                             </div>
                           ))
@@ -242,7 +288,25 @@ export default function InvestigationTabs({
               {expandedBox === "timeline" && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8]">INCIDENT EVENT TIMELINE</h3>
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8]">INCIDENT EVENT TIMELINE</h3>
+                      <button
+                        onClick={() => {
+                          if (!isPlaying && timelineFilterIndex === incident.timeline.length - 1) {
+                            setTimelineFilterIndex(-1); // Restart if at end
+                          }
+                          setIsPlaying(!isPlaying);
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                          isPlaying 
+                            ? "bg-[#E50914] text-white animate-pulse" 
+                            : "bg-[#1F1F24] text-[#A3A3A8] border border-[#2A2A2E] hover:border-[#E50914] hover:text-[#E50914]"
+                        }`}
+                      >
+                        {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+                        {isPlaying ? "Reconstructing..." : "Play Reconstruction"}
+                      </button>
+                    </div>
                     <span className="text-xs text-[#E50914] font-bold">
                       Scrubbing: showing {timelineFilterIndex + 1} of {incident.timeline.length} events
                     </span>
@@ -315,14 +379,14 @@ export default function InvestigationTabs({
               {/* RECOMMENDED ACTIONS PANEL */}
               {expandedBox === "actions" && (
                 <div>
-                  <h3 className="text-xs uppercase tracking-wider font-bold text-[#A3A3A8] mb-4">MITIGATION ROADMAP</h3>
+                  <h3 className="text-sm font-bold text-white mb-4 tracking-wide">Mitigation Roadmap</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {incident.recommended_steps.map((step, idx) => (
                       <div key={idx} className="bg-[#1F1F24] border border-[#2A2A2E] p-4 rounded-lg flex items-start gap-4 shadow-soft">
                         <span className="text-[11px] px-2 py-0.5 border border-[#E50914]/40 text-[#E50914] font-bold rounded bg-[#E50914]/5 select-none shrink-0 mt-0.5">
                           {(idx + 1).toString().padStart(2, "0")}
                         </span>
-                        <span className="text-xs text-[#A3A3A8] leading-relaxed font-sans font-medium">{step}</span>
+                        <span className="text-sm text-[#EBEBF5] leading-relaxed font-sans font-medium">{step}</span>
                       </div>
                     ))}
                   </div>

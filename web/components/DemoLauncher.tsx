@@ -118,26 +118,25 @@ export default function DemoLauncher({
           </span>
         </div>
         
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-xs font-bold text-[#E50914] hover:underline flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          {isExpanded ? "Collapse Launcher" : "Try another investigation scenario"}
-        </button>
+        {isExpanded ? (
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="text-xs font-bold text-[#E50914] hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            Collapse Launcher
+          </button>
+        ) : (
+          <motion.button
+            onClick={() => setIsExpanded(true)}
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="px-4 py-1.5 bg-[#E50914] hover:bg-[#b8070f] text-white text-[10px] font-bold rounded-md flex items-center gap-1.5 shadow-[0_0_10px_rgba(229,9,20,0.3)] uppercase tracking-wider cursor-pointer"
+          >
+            <Play size={10} fill="white" />
+            <span>Launch Demo</span>
+          </motion.button>
+        )}
       </div>
-
-      {/* Collapsed play button pill */}
-      {!isExpanded && (
-        <motion.button
-          onClick={() => setIsExpanded(true)}
-          whileHover={{ scale: 1.03, boxShadow: "0 4px 15px rgba(229,9,20,0.3)" }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="px-6 py-2 bg-[#E50914] hover:bg-[#b8070f] text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-soft uppercase tracking-wider cursor-pointer"
-        >
-          <Play size={12} fill="white" />
-          <span>Demo Launcher</span>
-        </motion.button>
-      )}
 
       {/* State 2 & 3: Expanded Grid */}
       <AnimatePresence>

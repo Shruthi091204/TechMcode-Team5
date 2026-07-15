@@ -24,27 +24,27 @@ export default function MetricStrip({ incident }: MetricStripProps) {
 
   const cards = [
     {
-      label: "TELEMETRY",
+      label: "Telemetry",
       value: telemetryValue,
-      status: telemetryStatus,
+      status: "+480% Deviation",
       severity: "critical", // red + glow
     },
     {
-      label: "LOGS",
+      label: "Logs",
       value: logsValue,
-      status: logsStatus,
+      status: "3 Critical Errors",
       severity: "critical", // red + glow
     },
     {
-      label: "ALERTS",
+      label: "Alerts",
       value: alertsValue,
-      status: alertsStatus,
+      status: "Critical Severity",
       severity: "critical", // red + glow
     },
     {
-      label: "CONFIG CHANGES",
+      label: "Config Changes",
       value: configsValue,
-      status: configsStatus,
+      status: "CHG-4212 Reduction",
       severity: "elevated", // amber
     },
   ];
@@ -93,7 +93,7 @@ export default function MetricStrip({ incident }: MetricStripProps) {
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="bg-[#16161A] p-6 flex flex-col justify-between min-h-[120px] rounded-xl shadow-soft cursor-pointer select-none"
           >
-            <div className="text-[11px] tracking-[0.08em] font-semibold text-[#A3A3A8] uppercase">
+            <div className="text-sm tracking-wide font-bold text-[#D1D1D6]">
               {card.label}
             </div>
             <div className="mt-2">
@@ -104,7 +104,7 @@ export default function MetricStrip({ incident }: MetricStripProps) {
                 {card.value}
               </div>
               <div 
-                className={`text-[13px] font-medium mt-1 uppercase ${
+                className={`text-[13px] font-medium mt-1 ${
                   isCritical ? "text-[#E50914]" : "text-[#A3A3A8]"
                 }`}
               >
