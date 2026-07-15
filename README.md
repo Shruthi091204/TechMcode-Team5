@@ -46,6 +46,27 @@ make check     # static analysis, then the contract and fixture test suite
 
 Under active development. Detailed execution instructions for the full pipeline will accompany the first tagged release.
 
+## Frontend NOC Dashboard
+
+The project frontend is a high-density, NOC-style diagnostics panel built in Next.js 15, optimized for network engineering.
+
+### Key Visual Instruments
+- **Causal Topology Graph**: Uses Cytoscape.js to highlight dependency paths and pulses the active root cause node with a radar-sweep CSS animation.
+- **Three-Tier Evidence Ledger**: Distinct columns for `[CONFIRMED]`, `[CORRELATED]`, and `[MISSING]` evidence points to prevent automated bias.
+- **Simulation Timeline**: Traces the propagation window from initial fault to symptom with toggleable counterfactual state controls.
+- **Interactive Fault Injector**: Allows manual trigger simulations for DDoS, bad configs, fiber cuts, and thread pool starvation.
+
+### Quick Start
+To spin up the web client locally:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+The application will launch on [http://localhost:3000](http://localhost:3000) and automatically redirect to the primary active incident `/incident/INC-2026-0042`.
+
 ## Licence
 
 MIT

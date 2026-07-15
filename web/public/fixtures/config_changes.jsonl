@@ -1,0 +1,4 @@
+{"change_id":"CHG-4210","component_id":"fw-01","ts":"2026-07-14T14:26:15Z","author":"j.kumar","change_type":"firewall_rule_add","before":{"rule_count":214},"after":{"rule_count":215,"added_rule":"permit tcp 10.20.0.0/16 any eq 8443"},"ticket_id":"NOC-8869"}
+{"change_id":"CHG-4211","component_id":"cache-02","ts":"2026-07-14T14:29:05Z","author":"p.nair","change_type":"cache_policy_update","before":{"maxmemory_policy":"volatile-lru"},"after":{"maxmemory_policy":"allkeys-lru"},"ticket_id":"NOC-8870"}
+{"change_id":"CHG-4212","component_id":"db-01","ts":"2026-07-14T14:30:30Z","author":"r.mehta","change_type":"db_param_update","before":{"max_connections":500,"wait_timeout":300},"after":{"max_connections":150,"wait_timeout":300},"ticket_id":"NOC-8871"}
+{"change_id":"CHG-4213","component_id":"web-05","ts":"2026-07-14T14:31:50Z","author":"s.iyer","change_type":"nginx_tune","before":{"worker_connections":1024},"after":{"worker_connections":2048},"ticket_id":"NOC-8873"}

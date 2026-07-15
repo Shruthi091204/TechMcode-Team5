@@ -1,0 +1,265 @@
+"use client";
+
+import React, { useState, use, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import HeaderBar from "../../../components/HeaderBar";
+import MetricStrip from "../../../components/MetricStrip";
+import TopologyGraph from "../../../components/TopologyGraph";
+import IncidentDetailPanel from "../../../components/IncidentDetailPanel";
+import InvestigationTabs from "../../../components/InvestigationTabs";
+import DemoLauncher from "../../../components/DemoLauncher";
+import { IncidentReport, Component, Dependency } from "../../../lib/types";
+import { getIncident, getTopology } from "../../../lib/api";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function IncidentPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const [selectedRank, setSelectedRank] = useState<number>(1);
+  const [incident, setIncident] = useState<IncidentReport | null>(null);
+  const [topology, setTopology] = useState<{ components: Component[]; dependencies: Dependency[] } | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Active scenario name for trial/indicator
+  const [activeScenarioLabel, setActiveScenarioLabel] = useState<string | null>(null);
+
+  // Timeline scrub filtering state
+  const [timelineFilterIndex, setTimelineFilterIndex] = useState<number>(999);
+
+
+  // Side Details Drawer / Panel states
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [drawerNodeId, setDrawerNodeId] = useState<string | null>(null);
+  const [drawerIsCluster, setDrawerIsCluster] = useState<boolean>(false);
+  const [drawerTier, setDrawerTier] = useState<string | null>(null);
+  const [expandedTiers, setExpandedTiers] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    Promise.all([getIncident(resolvedParams.id), getTopology()])
+      .then(([incData, topoData]) => {
+        if (!active) return;
+        setIncident(incData);
+        setTopology(topoData);
+        // Initialize timeline scrub range to the end of timeline
+        setTimelineFilterIndex(incData.timeline.length - 1);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load incident diagnostics");
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [resolvedParams.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+        <div className="text-center select-none flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border border-[#E50914] border-t-transparent animate-spin rounded-full" />
+          <div className="text-xs text-[#A3A3A8] animate-pulse uppercase tracking-widest font-semibold">
+            Loading Incident Diagnostics...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !incident || !topology) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+        <div className="border border-[#2A2A2E] bg-[#16161A] p-6 max-w-md w-full select-none rounded-xl">
+          <div className="text-[#E50914] font-extrabold text-sm mb-2 border-b border-[#2A2A2E] pb-2 flex justify-between">
+            <span>[CRITICAL_FAILURE]</span>
+            <span>ERROR CODE: 500</span>
+          </div>
+          <div className="text-xs text-[#A3A3A8] mb-4 font-sans leading-relaxed">
+            {error || "An unexpected error occurred while loading telemetry fixtures."}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs py-2 px-4 border border-[#E50914] text-white hover:bg-[#E50914]/10 rounded-lg w-full font-bold uppercase transition-all"
+          >
+            Retry Connectivity
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const activeHypothesis = incident.hypotheses.find((h) => h.rank === selectedRank) || incident.hypotheses[0];
+  const pathNodes = activeHypothesis?.topology_path || [];
+
+  // Filter components & dependencies based on scrubbed timeline state
+  const filteredTimeline = incident.timeline.slice(0, timelineFilterIndex + 1);
+
+  // We construct a filtered view of the incident report to pass down to visualizers
+  const filteredIncidentView: IncidentReport = {
+    ...incident,
+    timeline: filteredTimeline,
+    hypotheses: [
+      activeHypothesis,
+      ...incident.hypotheses.filter((h) => h.rank !== selectedRank),
+    ],
+  };
+
+  const handleNodeClick = (nodeId: string, isCluster: boolean, tier: string | null) => {
+    setDrawerNodeId(nodeId);
+    setDrawerIsCluster(isCluster);
+    setDrawerTier(tier);
+    setIsDrawerOpen(true);
+  };
+
+  // BFS hop distance from root cause node in page.tsx
+  const hopDistances = (() => {
+    const distances: Record<string, number> = {};
+    const rootCauseId = activeHypothesis?.root_cause_component;
+    if (!rootCauseId) return distances;
+    
+    distances[rootCauseId] = 0;
+    const queue: string[] = [rootCauseId];
+    
+    const adj: Record<string, string[]> = {};
+    topology.components.forEach(c => {
+      adj[c.component_id] = [];
+    });
+    topology.dependencies.forEach(dep => {
+      if (!adj[dep.source_id]) adj[dep.source_id] = [];
+      adj[dep.source_id].push(dep.target_id);
+      if (!adj[dep.target_id]) adj[dep.target_id] = [];
+      adj[dep.target_id].push(dep.source_id);
+    });
+    
+    let head = 0;
+    while (head < queue.length) {
+      const u = queue[head++];
+      const d = distances[u];
+      const neighbors = adj[u] || [];
+      for (const v of neighbors) {
+        if (distances[v] === undefined) {
+          distances[v] = d + 1;
+          queue.push(v);
+        }
+      }
+    }
+    return distances;
+  })();
+
+  // Page Load Framer Motion Variants
+  const pageVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.05
+      }
+    }
+  };
+
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
+
+  return (
+    <motion.div 
+      variants={pageVariants}
+      initial="hidden"
+      animate="show"
+      className="min-h-screen bg-transparent text-white font-sans flex flex-col p-6 gap-6 selection:bg-[#E50914] selection:text-white"
+    >
+      {/* 1. HeaderBar */}
+      <HeaderBar 
+        incidentId={resolvedParams.id}
+        detectedAt={incident.detected_at}
+        auditHash={incident.audit_hash}
+        symptom={incident.symptom}
+      />
+
+      {/* Demo Launcher */}
+      <DemoLauncher 
+        onScenarioLoaded={(incidentData, label) => {
+          setIncident(incidentData);
+          setTimelineFilterIndex(incidentData.timeline.length - 1);
+        }}
+        activeScenarioLabel={activeScenarioLabel}
+        setActiveScenarioLabel={setActiveScenarioLabel}
+      />
+
+      {/* 2. MetricStrip */}
+      <MetricStrip incident={filteredIncidentView} />
+
+      {/* 3 & 4. Centerpiece Topology + IncidentDetailPanel */}
+      <motion.section 
+        variants={sectionVariants}
+        className="flex flex-col lg:flex-row gap-6 relative"
+      >
+        {/* Topology View (Resizes smoothly from 100% to 40%) */}
+        <motion.div 
+          layout
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className={`bg-[#16161A] border border-[#2A2A2E] rounded-2xl overflow-hidden shadow-soft flex flex-col h-[550px] p-4 ${
+            isDrawerOpen ? "w-full lg:w-[40%] shrink-0" : "w-full lg:w-full"
+          }`}
+        >
+          <div className="flex-1 relative h-full w-full">
+            <TopologyGraph
+              topology={topology}
+              incident={filteredIncidentView}
+              highlightActive={true}
+              expandedTiers={expandedTiers}
+              onNodeClick={handleNodeClick}
+            />
+          </div>
+        </motion.div>
+
+        {/* Sliding Side Detail Panel */}
+        <AnimatePresence mode="wait">
+          {isDrawerOpen && (
+            <IncidentDetailPanel 
+              isOpen={isDrawerOpen}
+              onClose={() => setIsDrawerOpen(false)}
+              nodeId={drawerNodeId}
+              isCluster={drawerIsCluster}
+              tier={drawerTier}
+              topology={topology}
+              incident={filteredIncidentView}
+              onExpandTier={(tier) => setExpandedTiers((prev) => Array.from(new Set([...prev, tier])))}
+              pathNodes={pathNodes}
+            />
+          )}
+        </AnimatePresence>
+      </motion.section>
+
+      {/* 5. InvestigationTabs */}
+      <motion.section variants={sectionVariants}>
+        <InvestigationTabs 
+          incident={incident}
+          activeHypothesis={activeHypothesis}
+          timelineFilterIndex={timelineFilterIndex}
+          setTimelineFilterIndex={setTimelineFilterIndex}
+        />
+      </motion.section>
+
+      {/* Tiny Operational Status Bar Footer */}
+      <motion.footer 
+        variants={sectionVariants}
+        className="border-t border-[#2A2A2E]/50 pt-4 text-[10px] text-[#A3A3A8] flex items-center justify-between font-semibold"
+      >
+        <span>CONSOLE_FEED // STATUS: ACTIVE_DIAGNOSTICS</span>
+        <span>NODE_COUNT: {topology?.components.length} // NOC_STABLE</span>
+      </motion.footer>
+    </motion.div>
+  );
+}
