@@ -243,21 +243,82 @@ def _symptom_statement(symptom_id: str, anomalies: list[Anomaly], alerts: list[A
     )
 
 
-def build_live_incident(symptom_id: str | None = None) -> LiveIncident:
-    topology = load_topology()
-    telemetry = load_telemetry_frame()
+def _frame_from_points(points: list[TelemetryPoint]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "component_id": point.component_id,
+                "window_start": point.window_start,
+                "latency_ms": point.latency_ms,
+                "jitter_ms": point.jitter_ms,
+                "packet_loss_pct": point.packet_loss_pct,
+                "throughput_mbps": point.throughput_mbps,
+                "error_rate": point.error_rate,
+                "connection_count": point.connection_count,
+                "cpu_pct": point.cpu_pct,
+                "mem_pct": point.mem_pct,
+            }
+            for point in points
+        ]
+    )
+
+
+def _generate_incident_id() -> str:
+    return f"INC-{int(datetime.now().timestamp()) % 1000000:06d}"
+
+
+def _assemble_incident(
+    topology: Topology,
+    telemetry: pd.DataFrame,
+    logs: list[LogRecord],
+    alerts: list[AlertRecord],
+    changes: list[ConfigChange],
+    symptom_id: str | None,
+    incident_id: str,
+) -> LiveIncident:
     anomalies = resolve_anomalies(topology, telemetry)
-    alerts = load_alerts()
-    changes = load_changes()
-    logs = load_logs()
+    if not anomalies:
+        raise ValueError("no anomalies detected in the provided telemetry")
     resolved_symptom = symptom_id or _select_symptom(anomalies, topology, alerts)
     hypotheses = analyse_incident(topology, telemetry, anomalies, changes, alerts, logs, symptom_id=resolved_symptom)
     return LiveIncident(
-        incident_id=_incident_id(),
+        incident_id=incident_id,
         detected_at=_detection_time(resolved_symptom, alerts, anomalies),
         symptom=_symptom_statement(resolved_symptom, anomalies, alerts),
         symptom_component=resolved_symptom,
         hypotheses=hypotheses,
+    )
+
+
+def build_incident_from_data(
+    topology: Topology,
+    telemetry_points: list[TelemetryPoint],
+    logs: list[LogRecord],
+    alerts: list[AlertRecord],
+    changes: list[ConfigChange],
+    symptom_id: str | None = None,
+    incident_id: str | None = None,
+) -> LiveIncident:
+    return _assemble_incident(
+        topology,
+        _frame_from_points(telemetry_points),
+        logs,
+        alerts,
+        changes,
+        symptom_id,
+        incident_id or _generate_incident_id(),
+    )
+
+
+def build_live_incident(symptom_id: str | None = None) -> LiveIncident:
+    return _assemble_incident(
+        load_topology(),
+        load_telemetry_frame(),
+        load_logs(),
+        load_alerts(),
+        load_changes(),
+        symptom_id,
+        _incident_id(),
     )
 
 

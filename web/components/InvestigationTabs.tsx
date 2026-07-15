@@ -37,7 +37,7 @@ interface InvestigationTabsProps {
   incident: IncidentReport;
   activeHypothesis: any;
   timelineFilterIndex: number;
-  setTimelineFilterIndex: (index: number) => void;
+  setTimelineFilterIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export default function InvestigationTabs({

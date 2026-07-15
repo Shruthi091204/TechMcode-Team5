@@ -12,41 +12,47 @@ interface DemoLauncherProps {
 }
 
 const DEMO_SCENARIOS = [
-  { 
-    id: "link_degradation", 
-    label: "Fiber Cut", 
-    icon: Scissors, 
-    description: "Physical core transport line disruption degrades network path" 
+  {
+    id: "bad_config_push",
+    label: "Bad Configuration",
+    icon: Settings,
+    description: "Deployment configuration change reduces active db connections limit",
+    available: true,
   },
-  { 
-    id: "bad_config_push", 
-    label: "Bad Configuration", 
-    icon: Settings, 
-    description: "Deployment configuration change reduces active db connections limit" 
+  {
+    id: "link_degradation",
+    label: "Fiber Cut",
+    icon: Scissors,
+    description: "Physical core transport line disruption degrades network path",
+    available: false,
   },
-  { 
-    id: "ddos_flood", 
-    label: "DDoS Attack", 
-    icon: Shield, 
-    description: "High rate load-balancer packets flood exhausts socket capacity" 
+  {
+    id: "ddos_flood",
+    label: "DDoS Attack",
+    icon: Shield,
+    description: "High rate load-balancer packets flood exhausts socket capacity",
+    available: false,
   },
-  { 
-    id: "capacity_exhaustion", 
-    label: "Database Pool Exhaustion", 
-    icon: Database, 
-    description: "Connection pool exhaustion triggers application tier starvation" 
+  {
+    id: "capacity_exhaustion",
+    label: "Database Pool Exhaustion",
+    icon: Database,
+    description: "Connection pool exhaustion triggers application tier starvation",
+    available: false,
   },
-  { 
-    id: "nic_failure", 
-    label: "NIC Failure", 
-    icon: WifiOff, 
-    description: "Hardware network interface controller drops frames on switch port" 
+  {
+    id: "nic_failure",
+    label: "NIC Failure",
+    icon: WifiOff,
+    description: "Hardware network interface controller drops frames on switch port",
+    available: false,
   },
-  { 
-    id: "port_scan", 
-    label: "Port Scan", 
-    icon: Radar, 
-    description: "Automated network host sweep attempts scans for active open ports" 
+  {
+    id: "port_scan",
+    label: "Port Scan",
+    icon: Radar,
+    description: "Automated network host sweep attempts scans for active open ports",
+    available: false,
   },
 ];
 
@@ -168,30 +174,37 @@ export default function DemoLauncher({
             >
               {DEMO_SCENARIOS.map((sc) => {
                 const Icon = sc.icon;
+                const isAvailable = sc.available;
                 const isLoading = loadingScenarioId === sc.id;
                 const isError = errorScenarioId === sc.id;
                 const isAnyLoading = loadingScenarioId !== null;
                 const isSelected = loadingScenarioId === sc.id;
+                const isDisabled = isAnyLoading || !isAvailable;
 
                 return (
                   <motion.div
                     key={sc.id}
                     variants={cardVariants}
-                    whileHover={!isAnyLoading ? { scale: 1.02, backgroundColor: "#1F1F24" } : {}}
+                    whileHover={!isDisabled ? { scale: 1.02, backgroundColor: "#1F1F24" } : {}}
                     className={`p-5 rounded-xl bg-[#16161A] border border-[#2A2A2E]/50 shadow-soft transition-opacity flex flex-col justify-between min-h-[140px] relative overflow-hidden ${
-                      isAnyLoading && !isSelected ? "opacity-30" : "opacity-100"
+                      !isAvailable ? "opacity-40" : isAnyLoading && !isSelected ? "opacity-30" : "opacity-100"
                     } ${isSelected ? "border-[#E50914] state-active-glow" : ""}`}
-                    style={{ cursor: isAnyLoading ? "not-allowed" : "pointer" }}
-                    onClick={() => !isAnyLoading && handleRunInvestigation(sc.id, sc.label)}
+                    style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}
+                    onClick={() => !isDisabled && handleRunInvestigation(sc.id, sc.label)}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Icon 
-                          size={20} 
+                        <Icon
+                          size={20}
                           className={`${
                             isLoading ? "text-[#E50914] animate-pulse" : "text-[#A3A3A8]"
-                          }`} 
+                          }`}
                         />
+                        {!isAvailable && !isError && (
+                          <span className="text-[9px] bg-[#2A2A2E] text-[#8A8A90] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                            Soon
+                          </span>
+                        )}
                         {isError && (
                           <span className="text-[9px] bg-[#E50914]/20 text-[#E50914] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                             Not available yet

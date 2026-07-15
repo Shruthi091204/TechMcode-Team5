@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from rca.api.routes_analyze import router as analyze_router
 from rca.api.routes_audit import router as audit_router
 from rca.api.routes_incident import router as incident_router
 from rca.api.routes_replay import router as replay_router
@@ -14,6 +15,7 @@ app.include_router(incident_router)
 app.include_router(topology_router)
 app.include_router(replay_router)
 app.include_router(audit_router)
+app.include_router(analyze_router)
 
 
 @app.get("/health")
