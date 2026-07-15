@@ -6,6 +6,7 @@ import { Activity, ShieldCheck, Zap, ArrowRight, ShieldAlert, Database, Scissors
 import Link from "next/link";
 import { getTopology, getAuditVerification } from "../lib/api";
 import { Component } from "../lib/types";
+import IncidentUploader from "../components/IncidentUploader";
 
 const DEMO_SCENARIOS = [
   { id: "link_degradation", label: "Fiber Cut", icon: Scissors, color: "text-[#E50914]" },
@@ -126,7 +127,12 @@ export default function Home() {
             </motion.div>
           </Link>
         </motion.div>
-        
+
+        {/* UPLOAD / ANALYZE YOUR OWN INCIDENT */}
+        <motion.div variants={itemVariants} className="w-full max-w-2xl mx-auto">
+          <IncidentUploader />
+        </motion.div>
+
         {/* SCENARIOS PREVIEW ROW */}
         <motion.div variants={itemVariants} className="pt-12 border-t border-[#2A2A2E]/50 w-full flex flex-col items-center">
           <span className="text-[10px] text-[#6B6B70] font-bold uppercase tracking-widest mb-6 text-center">Available Investigation Scenarios</span>

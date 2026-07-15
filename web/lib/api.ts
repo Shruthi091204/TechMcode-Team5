@@ -47,3 +47,17 @@ export async function getAuditVerification(): Promise<any> {
   }
   return await response.json();
 }
+
+export async function analyzeIncident(payload: unknown, fast: boolean = false): Promise<IncidentReport> {
+  const url = `${API_BASE_URL}/analyze${fast ? "?fast=true" : ""}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.detail || `Analysis failed: ${response.statusText}`);
+  }
+  return await response.json();
+}
