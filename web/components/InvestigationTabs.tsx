@@ -5,7 +5,6 @@ import { AnimatePresence, motion as m } from "framer-motion";
 import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp, Pause } from "lucide-react";
 import { IncidentReport, TimelineEvent } from "../lib/types";
 import CounterfactualPanel from "./CounterfactualPanel";
-import SkepticTranscript from "./SkepticTranscript";
 
 // Typewriter Component for cinematic text reveal
 const TypewriterText = ({ text, delay = 0, speed = 15 }: { text: string; delay?: number; speed?: number }) => {

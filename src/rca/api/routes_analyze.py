@@ -16,7 +16,7 @@ from rca.agents.investigator import investigate_incident
 from rca.agents.remediation import generate_remediation_steps
 from rca.agents.skeptic import run_storm_verification
 from rca.audit.chain import append_audit_event
-from rca.pipeline import LiveIncident, build_incident_from_data
+from rca.pipeline import ANOMALY_METRICS, LiveIncident, build_incident_from_data
 
 router = APIRouter()
 
@@ -34,6 +34,8 @@ class AnalyzeRequest(BaseModel):
 class HealthyResult(BaseModel):
     status: str = "healthy"
     components_analyzed: int
+    telemetry_windows: int
+    metrics_evaluated: list[str]
     message: str
 
 
@@ -172,6 +174,8 @@ def analyze_uploaded_incident(request: AnalyzeRequest, fast: bool = False) -> In
         if "no anomalies" in str(engine_error).lower():
             return HealthyResult(
                 components_analyzed=len(request.topology.components),
+                telemetry_windows=len({point.window_start for point in request.telemetry}),
+                metrics_evaluated=list(ANOMALY_METRICS),
                 message="No anomalies detected — all monitored components are within baseline.",
             )
         raise HTTPException(status_code=422, detail=str(engine_error)) from engine_error

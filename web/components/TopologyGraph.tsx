@@ -8,7 +8,7 @@ import { Component, Dependency, IncidentReport } from "../lib/types";
 
 interface TopologyGraphProps {
   topology: { components: Component[]; dependencies: Dependency[] };
-  incident: IncidentReport;
+  incident?: IncidentReport;
   highlightActive?: boolean;
   expandedTiers?: string[];
   onNodeClick?: (nodeId: string, isCluster: boolean, tier: string | null) => void;
@@ -25,7 +25,7 @@ export default function TopologyGraph({
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [rootPos, setRootPos] = useState({ x: -999, y: -999 });
 
-  const activeHypothesis = incident.hypotheses.find((h) => h.rank === 1);
+  const activeHypothesis = incident?.hypotheses?.find((h) => h.rank === 1);
   const rootCauseId = activeHypothesis?.root_cause_component || "";
   const pathNodes = React.useMemo(() => activeHypothesis?.topology_path || [], [activeHypothesis?.topology_path]);
 
@@ -424,8 +424,17 @@ export default function TopologyGraph({
     <div className="relative w-full h-full scanline-grid border border-border-muted">
       {/* NOC Header */}
       <div className="absolute top-3 left-3 z-10 font-mono text-[10px] text-grey-muted select-none flex items-center gap-2">
-        <span className="inline-block w-1.5 h-1.5 bg-red-critical rounded-full animate-ping"></span>
-        <span>TOPOLOGY_ENGINE // ROOT_CAUSE_SUSPECT: <span className="text-red-critical text-status-glow font-bold font-mono">{rootCauseId}</span></span>
+        {highlightActive ? (
+          <>
+            <span className="inline-block w-1.5 h-1.5 bg-red-critical rounded-full animate-ping"></span>
+            <span>TOPOLOGY_ENGINE // ROOT_CAUSE_SUSPECT: <span className="text-red-critical text-status-glow font-bold font-mono">{rootCauseId}</span></span>
+          </>
+        ) : (
+          <>
+            <span className="inline-block w-1.5 h-1.5 bg-[#2ECC71] rounded-full animate-pulse"></span>
+            <span>TOPOLOGY_ENGINE // STATUS: <span className="text-[#2ECC71] font-bold font-mono">ALL NOMINAL</span></span>
+          </>
+        )}
       </div>
 
       {/* Cytoscape element */}

@@ -51,6 +51,8 @@ export async function getAuditVerification(): Promise<any> {
 export interface HealthyResult {
   status: "healthy";
   components_analyzed: number;
+  telemetry_windows: number;
+  metrics_evaluated: string[];
   message: string;
 }
 

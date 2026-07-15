@@ -12,6 +12,7 @@ interface IncidentDetailPanelProps {
   isCluster: boolean;
   tier: string | null;
   topology: { components: Component[] };
+  telemetryData?: Record<string, unknown>[];
   incident: IncidentReport;
   onExpandTier?: (tier: string) => void;
   pathNodes: string[];
@@ -24,6 +25,7 @@ export default function IncidentDetailPanel({
   isCluster,
   tier,
   topology,
+  telemetryData = [],
   incident,
   onExpandTier,
   pathNodes,
@@ -48,17 +50,19 @@ export default function IncidentDetailPanel({
   const isRootCause = !isCluster && nodeId === incident.hypotheses[0]?.root_cause_component;
   const isOnPath = !isCluster && pathNodes.includes(nodeId);
 
-  const getTelemetryMetrics = () => {
-    if (isRootCause) {
-      return { cpu: "94.2%", mem: "91.5%", latency: "138.4ms", loss: "0.1%", status: "CRITICAL" };
-    }
-    if (isOnPath) {
-      return { cpu: "82.1%", mem: "78.4%", latency: "112.5ms", loss: "0.0%", status: "DEGRADED" };
-    }
-    return { cpu: "14.5%", mem: "42.1%", latency: "1.8ms", loss: "0.0%", status: "NOMINAL" };
+  // Real per-node peak telemetry from the uploaded data (falls back to "—" when raw telemetry isn't loaded)
+  const nodeTelemetry = telemetryData.filter((point) => point.component_id === nodeId);
+  const peak = (field: string): number | null =>
+    nodeTelemetry.length ? Math.max(...nodeTelemetry.map((point) => Number(point[field]) || 0)) : null;
+  const fmt = (value: number | null, suffix: string): string =>
+    value === null ? "—" : `${value.toFixed(1)}${suffix}`;
+  const telemetry = {
+    cpu: fmt(peak("cpu_pct"), "%"),
+    mem: fmt(peak("mem_pct"), "%"),
+    latency: fmt(peak("latency_ms"), "ms"),
+    loss: fmt(peak("packet_loss_pct"), "%"),
+    status: isRootCause ? "CRITICAL" : isOnPath ? "DEGRADED" : "NOMINAL",
   };
-
-  const telemetry = getTelemetryMetrics();
 
   return (
     <motion.div
