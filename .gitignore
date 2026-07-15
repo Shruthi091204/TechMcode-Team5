@@ -42,3 +42,6 @@ venv/
 .pytest_cache/
 .mypy_cache/
 *.log
+
+# my annoying ahh ai tool
+.refact/

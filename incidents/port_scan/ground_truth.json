@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc-dc38f679",
+  "scenario": "port_scan",
+  "injection_timestamp": "2026-07-14T21:47:41.298516+00:00",
+  "true_root_cause": {
+    "component_id": "lb-01",
+    "fault_type": "security_scan"
+  }
+}

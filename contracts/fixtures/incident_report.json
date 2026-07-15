@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0.0",
+  "incident_id": "INC-1001",
+  "detected_at": "2026-07-14T14:32:40Z",
+  "symptom": "web-02 p99 latency crossed 138.4ms against a 100ms threshold, a +480% deviation from the 25ms baseline",
+  "symptom_component": "web-02",
+  "hypotheses": [
+    {
+      "rank": 1,
+      "root_cause_component": "db-01",
+      "fault_type": "config_pool_exhaustion",
+      "confidence": 0.87,
+      "causal_score": 0.91,
+      "topology_path": [
+        "db-01",
+        "app-03",
+        "web-02"
+      ],
+      "evidence": [
+        {
+          "kind": "confirmed",
+          "statement": "Config change CHG-4212 cut db-01 max_connections from 500 to 150 at 14:30:30Z, 90s before the connection-count onset",
+          "source": "config",
+          "ref": "CHG-4212"
+        },
+        {
+          "kind": "confirmed",
+          "statement": "Alert ALT-9002 fired on db-01 connection_count reaching the new ceiling of 150 at 14:31:40Z",
+          "source": "alert",
+          "ref": "ALT-9002"
+        },
+        {
+          "kind": "correlated",
+          "statement": "app-03 latency spiked to 178.3ms (ALT-9003) immediately downstream of db-01 on the topology path to web-02",
+          "source": "alert",
+          "ref": "ALT-9003"
+        },
+        {
+          "kind": "missing",
+          "statement": "No SNMP interface error counters available for tor-sw-03 to fully rule out a concurrent network-layer contribution",
+          "source": "topology",
+          "ref": null
+        }
+      ],
+      "counterfactual": "Removing config change CHG-4212 (restoring max_connections to 500) prevents the connection-pool exhaustion on db-01 and the downstream latency spike on web-02 in replay",
+      "skeptic_verdict": null
+    },
+    {
+      "rank": 2,
+      "root_cause_component": "web-05",
+      "fault_type": "bad_config_push",
+      "confidence": 0.08,
+      "causal_score": 0.03,
+      "topology_path": [
+        "web-05"
+      ],
+      "evidence": [
+        {
+          "kind": "correlated",
+          "statement": "Config change CHG-4213 landed on web-05 at 14:31:50Z, only 10s before onset, closer in time than the true cause",
+          "source": "config",
+          "ref": "CHG-4213"
+        },
+        {
+          "kind": "missing",
+          "statement": "Topology twin shows no dependency path from web-05 to symptom component web-02; candidate rejected by the topology-constrained causal filter",
+          "source": "topology",
+          "ref": null
+        }
+      ],
+      "counterfactual": null,
+      "skeptic_verdict": null
+    },
+    {
+      "rank": 3,
+      "root_cause_component": "cache-02",
+      "fault_type": "capacity_exhaustion",
+      "confidence": 0.05,
+      "causal_score": 0.02,
+      "topology_path": [
+        "cache-02"
+      ],
+      "evidence": [
+        {
+          "kind": "correlated",
+          "statement": "Alert ALT-9001 recorded a cache latency spike on cache-02 at 14:31:05Z, 55s before onset",
+          "source": "alert",
+          "ref": "ALT-9001"
+        },
+        {
+          "kind": "missing",
+          "statement": "web-02's dependency chain routes through cache-01, not cache-02; no dependency path to the symptom component exists",
+          "source": "topology",
+          "ref": null
+        }
+      ],
+      "counterfactual": null,
+      "skeptic_verdict": null
+    }
+  ],
+  "timeline": [
+    {
+      "ts": "2026-07-14T14:29:05Z",
+      "component_id": "cache-02",
+      "description": "Cache eviction policy changed to allkeys-lru (CHG-4211)",
+      "kind": "config"
+    },
+    {
+      "ts": "2026-07-14T14:30:30Z",
+      "component_id": "db-01",
+      "description": "max_connections reduced from 500 to 150 (CHG-4212)",
+      "kind": "config"
+    },
+    {
+      "ts": "2026-07-14T14:31:05Z",
+      "component_id": "cache-02",
+      "description": "Cache latency alert fired, 4.2ms observed against 3.0ms threshold",
+      "kind": "alert"
+    },
+    {
+      "ts": "2026-07-14T14:31:40Z",
+      "component_id": "db-01",
+      "description": "Connection ceiling alert fired, 150 connections observed against 145 threshold",
+      "kind": "alert"
+    },
+    {
+      "ts": "2026-07-14T14:31:50Z",
+      "component_id": "web-05",
+      "description": "nginx worker_connections tuned from 1024 to 2048 (CHG-4213)",
+      "kind": "config"
+    },
+    {
+      "ts": "2026-07-14T14:32:00Z",
+      "component_id": "db-01",
+      "description": "Change-point onset detected on connection_count, 6.2 MAD above baseline",
+      "kind": "anomaly"
+    },
+    {
+      "ts": "2026-07-14T14:32:25Z",
+      "component_id": "app-03",
+      "description": "Latency critical alert fired, 178.3ms observed against 80ms threshold",
+      "kind": "alert"
+    },
+    {
+      "ts": "2026-07-14T14:32:40Z",
+      "component_id": "web-02",
+      "description": "Latency spike propagated to the web tier, p99 crossed the 100ms critical threshold",
+      "kind": "propagation"
+    }
+  ],
+  "narrative": "At 14:30:30Z an operator change (CHG-4212) cut db-01's connection pool from 500 to 150. Ninety seconds later the connection count breached the new ceiling, tripping a change-point onset on db-01. The topology-constrained causal engine traced a live dependency path from db-01 through app-03 to web-02, matching the order and timing of the downstream alerts. Two other events looked suspicious in isolation — a config push on web-05 ten seconds before onset, and a cache latency blip on cache-02 — but neither has a dependency path to web-02 in the topology twin, so both were demoted rather than blamed on proximity alone.",
+  "recommended_steps": [
+    "Revert CHG-4212 to restore db-01 max_connections to 500 and confirm the latency spike on web-02 resolves",
+    "Pull SNMP interface error counters for tor-sw-03 to fully rule out a concurrent network-layer contribution",
+    "Re-run the topology shortestPath query for web-05 and cache-02 against the full mesh to confirm no indirect dependency path was missed"
+  ],
+  "audit_hash": "a5b4f999cf6da772ffc6539628881d2d401797a639458a5dbf3dc9c4e9bcb464"
+}
