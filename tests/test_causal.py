@@ -90,3 +90,32 @@ def test_build_live_incident_is_deterministic() -> None:
         for _ in range(5)
     }
     assert len(signatures) == 1
+
+
+def test_p2_detector_is_the_live_anomaly_source() -> None:
+    from rca.pipeline import _detect_via_p2, load_telemetry_frame
+
+    detected = _detect_via_p2(load_telemetry_frame())
+    assert detected is not None
+    flagged = {a.component_id for a in detected}
+    assert TRUE_CAUSE in flagged
+    assert SYMPTOM in flagged
+
+
+def test_p2_detector_output_still_ranks_true_cause_first() -> None:
+    from rca.pipeline import (
+        analyse_incident,
+        load_alerts,
+        load_changes,
+        load_logs,
+        load_telemetry_frame,
+    )
+
+    telemetry = load_telemetry_frame()
+    topology = load_topology()
+    from rca.pipeline import resolve_anomalies
+
+    anomalies = resolve_anomalies(topology, telemetry)
+    hypotheses = analyse_incident(topology, telemetry, anomalies, load_changes(), load_alerts(), load_logs())
+    assert hypotheses[0].root_cause_component == TRUE_CAUSE
+    assert hypotheses[0].topology_path == TRUE_PATH
