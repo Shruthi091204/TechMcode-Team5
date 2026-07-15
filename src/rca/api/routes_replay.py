@@ -61,7 +61,18 @@ def _static_incident_inputs(scenario: str) -> IncidentInputs:
     )
 
 
+def _golden_scenario() -> str:
+    payload = json.loads((FIXTURES_DIR / "ground_truth.json").read_text(encoding="utf-8"))
+    return payload["scenario"]
+
+
 def resolve_incident_inputs(scenario: str) -> IncidentInputs:
+    golden = _golden_scenario()
+    if scenario != golden:
+        raise HTTPException(
+            status_code=404,
+            detail=f"no recorded incident for scenario '{scenario}'; only '{golden}' is wired to the causal engine",
+        )
     live_inputs = _live_incident_inputs()
     if live_inputs is not None:
         return live_inputs
