@@ -1,0 +1,9 @@
+{
+  "incident_id": "inc-4799b1df",
+  "scenario": "nic_failure",
+  "injection_timestamp": "2026-07-14T21:35:57.274716+00:00",
+  "true_root_cause": {
+    "component_id": "app-01",
+    "fault_type": "interface_down"
+  }
+}
