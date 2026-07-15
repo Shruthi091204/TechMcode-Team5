@@ -15,6 +15,7 @@ from contracts.schemas import (
     ConfigChange,
     Hypothesis,
     LogRecord,
+    TelemetryPoint,
     Topology,
 )
 from rca.causal.candidate_set import candidate_causes, decoy_components
@@ -117,6 +118,49 @@ def derive_anomalies(topology: Topology, telemetry: pd.DataFrame) -> list[Anomal
     return anomalies
 
 
+def _telemetry_points(telemetry: pd.DataFrame) -> list[TelemetryPoint]:
+    points: list[TelemetryPoint] = []
+    for _, row in telemetry.iterrows():
+        points.append(
+            TelemetryPoint(
+                component_id=row["component_id"],
+                window_start=row["window_start"],
+                latency_ms=float(row["latency_ms"]),
+                jitter_ms=float(row["jitter_ms"]),
+                packet_loss_pct=float(row["packet_loss_pct"]),
+                throughput_mbps=float(row["throughput_mbps"]),
+                error_rate=float(row["error_rate"]),
+                connection_count=int(row["connection_count"]),
+                cpu_pct=float(row["cpu_pct"]),
+                mem_pct=float(row["mem_pct"]),
+            )
+        )
+    return points
+
+
+def _detect_via_p2(telemetry: pd.DataFrame) -> list[Anomaly] | None:
+    try:
+        from src.rca.detect.detector import detect_anomalies
+        from src.rca.detect.window import build_metric_windows
+    except ImportError:
+        return None
+    windows = build_metric_windows(_telemetry_points(telemetry))
+    detected = detect_anomalies(windows)
+    return detected or None
+
+
+def _covers_edge(anomalies: list[Anomaly], topology: Topology) -> bool:
+    edge = {c.component_id for c in topology.components if c.tier.value in {"web", "edge"}}
+    return any(anomaly.component_id in edge for anomaly in anomalies)
+
+
+def resolve_anomalies(topology: Topology, telemetry: pd.DataFrame) -> list[Anomaly]:
+    detected = _detect_via_p2(telemetry)
+    if detected is not None and _covers_edge(detected, topology):
+        return detected
+    return derive_anomalies(topology, telemetry)
+
+
 def _select_symptom(anomalies: list[Anomaly], topology: Topology, alerts: list[AlertRecord]) -> str:
     edge_tiers = {c.component_id for c in topology.components if c.tier.value in {"web", "edge"}}
     anomalous_edge = {a.component_id for a in anomalies if a.component_id in edge_tiers}
@@ -202,7 +246,7 @@ def _symptom_statement(symptom_id: str, anomalies: list[Anomaly], alerts: list[A
 def build_live_incident(symptom_id: str | None = None) -> LiveIncident:
     topology = load_topology()
     telemetry = load_telemetry_frame()
-    anomalies = derive_anomalies(topology, telemetry)
+    anomalies = resolve_anomalies(topology, telemetry)
     alerts = load_alerts()
     changes = load_changes()
     logs = load_logs()
@@ -220,7 +264,7 @@ def build_live_incident(symptom_id: str | None = None) -> LiveIncident:
 def run_reference() -> list[Hypothesis]:
     topology = load_topology()
     telemetry = load_telemetry_frame()
-    anomalies = derive_anomalies(topology, telemetry)
+    anomalies = resolve_anomalies(topology, telemetry)
     return analyse_incident(
         topology, telemetry, anomalies, load_changes(), load_alerts(), load_logs(), symptom_id=_ground_truth_symptom()
     )
