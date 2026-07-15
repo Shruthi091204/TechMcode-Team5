@@ -46,6 +46,7 @@ venv/
 # --- Runtime artifacts (generated at run time, never committed) ---
 data/
 incidents/audit_chain.jsonl
+test_scenarios/
 
 # my annoying ahh ai tool
 .refact/

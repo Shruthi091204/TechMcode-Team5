@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import pytest
 
 from contracts.schemas import TelemetryPoint
 from src.rca.ingest.csv_adapter import load_telemetry_csv
 from src.rca.ingest.store import TelemetryStore
 
 FIXTURES = Path(__file__).resolve().parents[1] / "contracts" / "fixtures"
-_UTC = timezone.utc
+_UTC = UTC
 
 _BASE_TS = datetime(2026, 7, 14, 14, 25, 0, tzinfo=_UTC)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -17,9 +17,9 @@ FIXTURES = Path(__file__).resolve().parents[1] / "contracts" / "fixtures"
 # Test helpers
 # ---------------------------------------------------------------------------
 
-_BASE_TS = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-_NEXT_TS = datetime(2026, 1, 1, 0, 0, 30, tzinfo=timezone.utc)
-_LAST_TS = datetime(2026, 1, 1, 0, 1, 0, tzinfo=timezone.utc)
+_BASE_TS = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+_NEXT_TS = datetime(2026, 1, 1, 0, 0, 30, tzinfo=UTC)
+_LAST_TS = datetime(2026, 1, 1, 0, 1, 0, tzinfo=UTC)
 
 
 def _make_point(component_id: str, ts: datetime, **overrides: object) -> TelemetryPoint:
@@ -144,9 +144,9 @@ def test_values_aligned_with_sorted_timestamps_after_shuffle() -> None:
 
 
 def test_three_points_shuffled_timestamps_are_strictly_ascending() -> None:
-    ts_a = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    ts_b = datetime(2026, 1, 1, 0, 0, 30, tzinfo=timezone.utc)
-    ts_c = datetime(2026, 1, 1, 0, 1, 0, tzinfo=timezone.utc)
+    ts_a = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+    ts_b = datetime(2026, 1, 1, 0, 0, 30, tzinfo=UTC)
+    ts_c = datetime(2026, 1, 1, 0, 1, 0, tzinfo=UTC)
     points = [
         _make_point("a-01", ts_c),
         _make_point("a-01", ts_a),

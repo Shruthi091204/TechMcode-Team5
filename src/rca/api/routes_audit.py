@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
 from typing import Any
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
+
 from rca.audit.chain import DEFAULT_AUDIT_LOG_PATH
 from rca.audit.verify import AuditVerificationResult, verify_audit_chain
 

@@ -1,10 +1,11 @@
 # testbed/inject.py
-import subprocess
 import json
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
+import subprocess
 import sys
+import uuid
+from datetime import UTC, datetime
+from pathlib import Path
+
 
 def execute_scenario(scenario_path: Path) -> bool:
     """Runs the bash scenario script."""
@@ -17,7 +18,7 @@ def execute_scenario(scenario_path: Path) -> bool:
 
 def stamp_ground_truth(scenario_name: str, target_component: str, fault_type: str) -> None:
     """Writes the exact injection timestamp to ground_truth.json."""
-    injection_time = datetime.now(timezone.utc).isoformat()
+    injection_time = datetime.now(UTC).isoformat()
     
     ground_truth = {
         "incident_id": f"inc-{uuid.uuid4().hex[:8]}",

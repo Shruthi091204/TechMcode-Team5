@@ -1,8 +1,8 @@
 # testbed/recorder.py
+import csv
 import subprocess
 import time
-import csv
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Only tracking the active components in our physical testbed
 TARGET_COMPONENTS = ["lb-01", "web-01", "app-01", "db-01"]
@@ -17,7 +17,7 @@ def poll_docker_stats(output_file="hardware_telemetry.csv", duration_seconds=60,
         
         end_time = time.time() + duration_seconds
         while time.time() < end_time:
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             
             # Use docker stats formatting to get exactly what we need
             cmd = ["docker", "stats", "--no-stream", "--format", "{{.Name}},{{.CPUPerc}},{{.MemPerc}}"]

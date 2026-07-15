@@ -246,7 +246,7 @@ export default function TopologyGraph({
           style: {
             "background-color": (ele: any) => {
               const data = ele.data();
-              if (data.isCluster) return "#1F1F24"; // --bg-panel-raised
+              if (data.isCluster) return "#1E8449"; // healthy cluster of unaffected nodes
               if (data.isRoot && highlightActive) return "#E50914"; // --accent-red
               if (data.isRoot) return "#5c050a";
               if (data.isOnPath) {
@@ -256,14 +256,7 @@ export default function TopologyGraph({
                 return "#F5D547";
               }
 
-              const tierColors = {
-                edge: "#1F1F24",
-                network: "#1F1F24",
-                web: "#1F1F24",
-                app: "#1F1F24",
-                data: "#1F1F24",
-              };
-              return tierColors[data.tier as keyof typeof tierColors] || "#16161A";
+              return "#1E8449"; // healthy / unaffected node
             },
             label: "data(label)",
             color: (ele: any) => {
@@ -375,6 +368,10 @@ export default function TopologyGraph({
 
     // Fit graph viewport to use the full canvas space beautifully
     cy.fit(undefined, 30);
+
+    // Lock zoom-out so the graph can never shrink into invisibility
+    cy.minZoom(cy.zoom() * 0.8);
+    cy.maxZoom(3);
 
     // Track root cause node position for HTML overlay pulse
     cy.on("render", () => {

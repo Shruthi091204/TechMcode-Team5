@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +41,7 @@ def append_audit_event(
 ) -> str:
     ensure_audit_directory(file_path)
     prev_hash = get_latest_hash(file_path)
-    timestamp_iso = datetime.now(timezone.utc).isoformat()
+    timestamp_iso = datetime.now(UTC).isoformat()
     payload_json = json.dumps(payload, sort_keys=True)
     entry_hash = compute_entry_hash(prev_hash, timestamp_iso, event_type, payload_json)
 

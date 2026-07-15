@@ -72,26 +72,32 @@ export default function InvestigationTabs({
   const missing = evidenceItems.filter((item: any) => item.kind === "missing");
 
   // Chat Transcript logic for AI Investigation
-  const skepticVerdict = activeHypothesis?.skeptic_verdict || "No skeptic analysis available.";
+  const pathText = (activeHypothesis?.topology_path || []).join(" → ");
   const transcript = [
     {
       speaker: "Investigator AI",
-      message: `Root Cause Analysis indicates ${activeHypothesis?.root_cause_component} underwent a critical fault: ${activeHypothesis?.fault_type}. Deployment config audit confirms max_connections changed.`,
+      message: `Ranked ${activeHypothesis?.root_cause_component} (${activeHypothesis?.fault_type}) as the most likely root cause along ${pathText}, supported by ${confirmed.length} confirmed and ${correlated.length} correlated evidence items.`,
       time: "09:28:15",
       isSkeptic: false,
     },
     {
       speaker: "Skeptic Bot",
-      message: skepticVerdict,
+      message:
+        activeHypothesis?.skeptic_verdict ||
+        "Adversarial STORM verification runs in Full AI investigation mode. The deterministic engine's ranking stands on topology-constrained causation and the evidence ledger.",
       time: "09:29:02",
       isSkeptic: true,
     },
-    {
-      speaker: "Investigator AI",
-      message: "Acknowledged. However, the telemetry timeline places the database connection pool saturation exactly 25 seconds before the packet retransmissions began on tor-03, pointing to downstream queue backlog rather than line corruption.",
-      time: "09:29:45",
-      isSkeptic: false,
-    },
+    ...(activeHypothesis?.counterfactual
+      ? [
+          {
+            speaker: "Investigator AI",
+            message: activeHypothesis.counterfactual,
+            time: "09:29:45",
+            isSkeptic: false,
+          },
+        ]
+      : []),
   ];
 
   const boxes = [

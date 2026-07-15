@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import statistics
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -11,7 +11,7 @@ from contracts.schemas import TelemetryPoint
 from src.rca.detect.window import build_metric_windows
 from src.rca.ingest.flow_to_kpi import FlowRecord, aggregate_flows, load_flow_csv
 
-_UTC = timezone.utc
+_UTC = UTC
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers

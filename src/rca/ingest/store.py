@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -43,7 +43,7 @@ _COLUMNS = (
 def _to_naive_utc(ts: datetime) -> datetime:
     """Convert any aware datetime to a naive UTC datetime for DuckDB TIMESTAMP storage."""
     if ts.tzinfo is not None:
-        ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
+        ts = ts.astimezone(UTC).replace(tzinfo=None)
     return ts
 
 
@@ -63,12 +63,12 @@ def _point_to_row(point: TelemetryPoint) -> tuple:
 
 
 def _row_to_point(row: tuple) -> TelemetryPoint:
-    mapping = dict(zip(_COLUMNS, row))
+    mapping = dict(zip(_COLUMNS, row, strict=False))
     ts = mapping["window_start"]
     # TIMESTAMP columns return naive datetimes; re-attach UTC since all stored
     # values were converted to naive UTC on insert.
     if isinstance(ts, datetime) and ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.replace(tzinfo=UTC)
     mapping["window_start"] = ts
     return TelemetryPoint.model_validate(mapping)
 

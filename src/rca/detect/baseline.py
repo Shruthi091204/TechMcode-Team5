@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 from scipy.stats import median_abs_deviation
@@ -93,9 +93,6 @@ def compute_mad_scores(signal: Sequence[float] | np.ndarray) -> MadBaseline:
     centre = float(np.median(values))
     mad = float(median_abs_deviation(values, scale=1.0))
 
-    if mad == 0.0:
-        per_observation_scores = np.abs(values - centre)
-    else:
-        per_observation_scores = np.abs(values - centre) / mad
+    per_observation_scores = np.abs(values - centre) if mad == 0.0 else np.abs(values - centre) / mad
 
     return MadBaseline(median=centre, mad=mad, scores=per_observation_scores)

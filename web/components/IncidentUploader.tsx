@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { UploadCloud, FlaskConical, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { UploadCloud, FlaskConical, Loader2, AlertCircle, Sparkles, CheckCircle } from "lucide-react";
 import { analyzeIncident } from "../lib/api";
 import { IncidentReport } from "../lib/types";
 
@@ -20,14 +20,23 @@ export default function IncidentUploader() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [healthy, setHealthy] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const runAnalysis = async (payload: UploadPayload, label: string) => {
     setBusy(true);
     setError(null);
+    setHealthy(null);
     setStatus(enriched ? `${label} — running full AI investigation (~40s)…` : `${label} — analyzing…`);
     try {
-      const report: IncidentReport = await analyzeIncident(payload, !enriched);
+      const result = await analyzeIncident(payload, !enriched);
+      if ("status" in result && result.status === "healthy") {
+        setHealthy(result.message);
+        setStatus(null);
+        setBusy(false);
+        return;
+      }
+      const report = result as IncidentReport;
       const topo = payload.topology ?? { components: [], dependencies: [] };
       sessionStorage.setItem(
         `analyzed:${report.incident_id}`,
@@ -156,6 +165,12 @@ export default function IncidentUploader() {
         <div className="flex items-center gap-2 text-[11px] text-[#E50914]">
           <AlertCircle size={12} />
           {error}
+        </div>
+      ) : null}
+      {healthy ? (
+        <div className="flex items-center gap-2 text-[12px] text-[#2ECC71] bg-[#2ECC71]/10 border border-[#2ECC71]/30 rounded-lg p-3">
+          <CheckCircle size={14} />
+          {healthy}
         </div>
       ) : null}
     </div>
