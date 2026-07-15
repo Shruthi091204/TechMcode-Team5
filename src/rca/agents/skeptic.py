@@ -1,13 +1,16 @@
 import json
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from pydantic import BaseModel, Field
 
 from contracts.schemas import Hypothesis
-from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
-from rca.agents.tools import query_changes, query_graph, query_logs, query_metrics
+from rca.agents.runner import run_agent_loop
+from rca.agents.tools import TOOL_SCHEMAS, execute_tool
 
 MAX_CONFIDENCE_NUDGE = 0.05
+SKEPTIC_MAX_TOKENS = 3000
+MAX_SKEPTIC_WORKERS = 8
 
 
 class SkepticEvaluation(BaseModel):
@@ -29,22 +32,6 @@ def build_skeptic_system_prompt() -> str:
     )
 
 
-def extract_skeptic_evaluation(runner_result: Any) -> SkepticEvaluation:
-    for message_item in reversed(runner_result.messages):
-        if message_item.role != "assistant":
-            continue
-        for content_block in message_item.content:
-            if content_block.type == "tool_use" and content_block.name == "SkepticEvaluation":
-                return SkepticEvaluation.model_validate(content_block.input)
-            if hasattr(content_block, "text") and "{" in content_block.text:
-                try:
-                    raw_json = json.loads(content_block.text)
-                    return SkepticEvaluation.model_validate(raw_json)
-                except (json.JSONDecodeError, ValueError):
-                    continue
-    raise ValueError("skeptic verification loop failed to produce structured SkepticEvaluation")
-
-
 def clamp_confidence(current_confidence: float, adjustment: float) -> float:
     new_confidence = current_confidence + adjustment
     if new_confidence > 1.0:
@@ -55,7 +42,6 @@ def clamp_confidence(current_confidence: float, adjustment: float) -> float:
 
 
 def evaluate_single_hypothesis(hypothesis: Hypothesis, symptom: str) -> tuple[Hypothesis, str]:
-    anthropic_client = get_anthropic_client()
     serialized_hypothesis = json.dumps(hypothesis.model_dump(mode="json"), indent=2)
     user_prompt = (
         f"Observed Symptom: {symptom}\n\n"
@@ -63,20 +49,15 @@ def evaluate_single_hypothesis(hypothesis: Hypothesis, symptom: str) -> tuple[Hy
         "Attempt to disprove this hypothesis using graph topology and metric queries. Return your verdict."
     )
 
-    runner_result = anthropic_client.beta.messages.tool_runner(
-        model=MODEL_NAME,
-        max_tokens=2048,
-        system=build_skeptic_system_prompt(),
-        thinking=THINKING_CONFIG,
-        output_config={
-            "effort": OUTPUT_CONFIG["effort"],
-            "format": {"type": "json_schema", "schema": SkepticEvaluation.model_json_schema()},
-        },
-        tools=[query_graph, query_metrics, query_logs, query_changes],
-        messages=[{"role": "user", "content": user_prompt}],
+    evaluation = run_agent_loop(
+        system_prompt=build_skeptic_system_prompt(),
+        user_prompt=user_prompt,
+        tool_schemas=TOOL_SCHEMAS,
+        execute=execute_tool,
+        response_model=SkepticEvaluation,
+        max_tokens=SKEPTIC_MAX_TOKENS,
     )
 
-    evaluation = extract_skeptic_evaluation(runner_result)
     bounded_adjustment = max(-MAX_CONFIDENCE_NUDGE, min(MAX_CONFIDENCE_NUDGE, evaluation.confidence_adjustment))
     updated_confidence = clamp_confidence(hypothesis.confidence, bounded_adjustment)
 
@@ -95,11 +76,25 @@ def evaluate_single_hypothesis(hypothesis: Hypothesis, symptom: str) -> tuple[Hy
     return updated_hypothesis, evaluation.transcript
 
 
+def rerank_verified(hypotheses: list[Hypothesis]) -> list[Hypothesis]:
+    if not hypotheses:
+        return []
+    deterministic_leader = min(hypotheses, key=lambda item: item.rank)
+    by_confidence = sorted(hypotheses, key=lambda item: (-item.confidence, item.rank))
+    ordered = [deterministic_leader] + [item for item in by_confidence if item is not deterministic_leader]
+    return [item.model_copy(update={"rank": position}) for position, item in enumerate(ordered, start=1)]
+
+
 def run_storm_verification(hypotheses: list[Hypothesis], symptom: str) -> tuple[list[Hypothesis], list[str]]:
-    verified_hypotheses = []
-    debate_transcripts = []
-    for hypothesis in hypotheses:
-        updated_hypothesis, transcript = evaluate_single_hypothesis(hypothesis, symptom)
-        verified_hypotheses.append(updated_hypothesis)
-        debate_transcripts.append(transcript)
+    if not hypotheses:
+        return [], []
+    evaluate = partial(evaluate_single_hypothesis, symptom=symptom)
+    worker_count = min(len(hypotheses), MAX_SKEPTIC_WORKERS)
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        outcomes = list(executor.map(evaluate, hypotheses))
+    transcript_by_component = {hypothesis.root_cause_component: transcript for hypothesis, transcript in outcomes}
+    verified_hypotheses = rerank_verified([hypothesis for hypothesis, _ in outcomes])
+    debate_transcripts = [
+        transcript_by_component[hypothesis.root_cause_component] for hypothesis in verified_hypotheses
+    ]
     return verified_hypotheses, debate_transcripts

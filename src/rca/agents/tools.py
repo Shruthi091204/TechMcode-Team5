@@ -4,8 +4,6 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
-# from anthropic.beta.tools import tool as beta_tool
-from anthropic import beta_tool;
 
 FIXTURES_DIR = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 
@@ -56,7 +54,6 @@ def is_within_window(record_timestamp: str, window_start: str, window_end: str) 
     return start_time <= current_time <= end_time
 
 
-@beta_tool
 def query_graph(component_id: str) -> dict[str, Any]:
     topology_graph = load_topology_fixture()
     target_component = next(
@@ -80,7 +77,6 @@ def query_graph(component_id: str) -> dict[str, Any]:
     }
 
 
-@beta_tool
 def query_metrics(component_id: str, window_start: str, window_end: str) -> list[dict[str, Any]]:
     telemetry_records = load_telemetry_fixture()
     matching_records = []
@@ -93,7 +89,6 @@ def query_metrics(component_id: str, window_start: str, window_end: str) -> list
     return matching_records
 
 
-@beta_tool
 def query_logs(component_id: str, window_start: str, window_end: str) -> list[dict[str, Any]]:
     log_records = load_logs_fixture()
     matching_records = []
@@ -106,7 +101,6 @@ def query_logs(component_id: str, window_start: str, window_end: str) -> list[di
     return matching_records
 
 
-@beta_tool
 def query_changes(window_start: str, window_end: str) -> list[dict[str, Any]]:
     change_records = load_changes_fixture()
     matching_records = []
@@ -115,3 +109,69 @@ def query_changes(window_start: str, window_end: str) -> list[dict[str, Any]]:
             continue
         matching_records.append(record)
     return matching_records
+
+
+def _component_param() -> dict[str, Any]:
+    return {"type": "string", "description": "Component identifier such as db-01 or web-02"}
+
+
+def _window_params() -> dict[str, Any]:
+    return {
+        "window_start": {"type": "string", "description": "ISO-8601 window start timestamp"},
+        "window_end": {"type": "string", "description": "ISO-8601 window end timestamp"},
+    }
+
+
+def _function_schema(name: str, description: str, properties: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": properties,
+                "required": list(properties.keys()),
+                "additionalProperties": False,
+            },
+            "strict": True,
+        },
+    }
+
+
+TOOL_SCHEMAS: list[dict[str, Any]] = [
+    _function_schema(
+        "query_graph",
+        "Return a component plus its upstream and downstream topology dependencies.",
+        {"component_id": _component_param()},
+    ),
+    _function_schema(
+        "query_metrics",
+        "Return telemetry rows for a component within a time window.",
+        {"component_id": _component_param(), **_window_params()},
+    ),
+    _function_schema(
+        "query_logs",
+        "Return log records for a component within a time window.",
+        {"component_id": _component_param(), **_window_params()},
+    ),
+    _function_schema(
+        "query_changes",
+        "Return configuration changes applied within a time window.",
+        _window_params(),
+    ),
+]
+
+TOOL_DISPATCH = {
+    "query_graph": query_graph,
+    "query_metrics": query_metrics,
+    "query_logs": query_logs,
+    "query_changes": query_changes,
+}
+
+
+def execute_tool(tool_name: str, arguments: dict[str, Any]) -> Any:
+    handler = TOOL_DISPATCH.get(tool_name)
+    if handler is None:
+        return {"error": f"unknown tool {tool_name}"}
+    return handler(**arguments)
