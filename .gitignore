@@ -43,5 +43,9 @@ venv/
 .mypy_cache/
 *.log
 
+# --- Runtime artifacts (generated at run time, never committed) ---
+data/
+incidents/audit_chain.jsonl
+
 # my annoying ahh ai tool
 .refact/

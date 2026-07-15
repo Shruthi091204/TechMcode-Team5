@@ -1,10 +1,12 @@
 import json
-from typing import Any
 
 from pydantic import BaseModel, Field
 
 from contracts.schemas import EvidenceKind, Hypothesis
-from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
+from rca.agents.runner import run_agent_loop
+from rca.agents.tools import execute_tool
+
+REMEDIATION_MAX_TOKENS = 1500
 
 
 class RemediationPlan(BaseModel):
@@ -21,22 +23,6 @@ def build_remediation_system_prompt() -> str:
         "not mentioned in the missing evidence or root-cause path. "
         "Convert each missing evidence statement into a specific operational command or verification step."
     )
-
-
-def extract_remediation_plan(runner_result: Any) -> RemediationPlan:
-    for message_item in reversed(runner_result.messages):
-        if message_item.role != "assistant":
-            continue
-        for content_block in message_item.content:
-            if content_block.type == "tool_use" and content_block.name == "RemediationPlan":
-                return RemediationPlan.model_validate(content_block.input)
-            if hasattr(content_block, "text") and "{" in content_block.text:
-                try:
-                    raw_json = json.loads(content_block.text)
-                    return RemediationPlan.model_validate(raw_json)
-                except (json.JSONDecodeError, ValueError):
-                    continue
-    raise ValueError("remediation generation failed to produce structured RemediationPlan")
 
 
 def generate_fallback_steps(leading_hypothesis: Hypothesis) -> list[str]:
@@ -60,7 +46,6 @@ def generate_remediation_steps(leading_hypothesis: Hypothesis) -> list[str]:
     if not missing_evidence:
         return generate_fallback_steps(leading_hypothesis)
 
-    anthropic_client = get_anthropic_client()
     user_prompt = (
         f"Root Cause Component: {leading_hypothesis.root_cause_component}\n"
         f"Fault Type: {leading_hypothesis.fault_type.value}\n"
@@ -70,19 +55,14 @@ def generate_remediation_steps(leading_hypothesis: Hypothesis) -> list[str]:
     )
 
     try:
-        runner_result = anthropic_client.beta.messages.tool_runner(
-            model=MODEL_NAME,
-            max_tokens=1024,
-            system=build_remediation_system_prompt(),
-            thinking=THINKING_CONFIG,
-            output_config={
-                "effort": OUTPUT_CONFIG["effort"],
-                "format": {"type": "json_schema", "schema": RemediationPlan.model_json_schema()},
-            },
-            tools=[],
-            messages=[{"role": "user", "content": user_prompt}],
+        plan = run_agent_loop(
+            system_prompt=build_remediation_system_prompt(),
+            user_prompt=user_prompt,
+            tool_schemas=[],
+            execute=execute_tool,
+            response_model=RemediationPlan,
+            max_tokens=REMEDIATION_MAX_TOKENS,
         )
-        plan = extract_remediation_plan(runner_result)
         return plan.diagnostic_steps
     except Exception:
         return generate_fallback_steps(leading_hypothesis)

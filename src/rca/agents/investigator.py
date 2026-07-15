@@ -1,13 +1,14 @@
 import hashlib
 import json
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
 
 from contracts.schemas import Hypothesis, IncidentReport, TimelineEvent
-from rca.agents.client import MODEL_NAME, OUTPUT_CONFIG, THINKING_CONFIG, get_anthropic_client
-from rca.agents.tools import query_changes, query_graph, query_logs, query_metrics
+from rca.agents.runner import run_agent_loop
+from rca.agents.tools import TOOL_SCHEMAS, execute_tool
+
+INVESTIGATOR_MAX_TOKENS = 6000
 
 
 class InvestigatorOutput(BaseModel):
@@ -37,22 +38,6 @@ def generate_fallback_audit_hash(narrative_text: str) -> str:
     return hashlib.sha256(narrative_text.encode("utf-8")).hexdigest()
 
 
-def extract_investigator_output(runner_result: Any) -> InvestigatorOutput:
-    for message_item in reversed(runner_result.messages):
-        if message_item.role != "assistant":
-            continue
-        for content_block in message_item.content:
-            if content_block.type == "tool_use" and content_block.name == "InvestigatorOutput":
-                return InvestigatorOutput.model_validate(content_block.input)
-            if hasattr(content_block, "text") and "{" in content_block.text:
-                try:
-                    raw_json = json.loads(content_block.text)
-                    return InvestigatorOutput.model_validate(raw_json)
-                except (json.JSONDecodeError, ValueError):
-                    continue
-    raise ValueError("investigator loop failed to produce structured InvestigatorOutput")
-
-
 def investigate_incident(
     incident_id: str,
     detected_at: datetime,
@@ -60,7 +45,6 @@ def investigate_incident(
     symptom_component: str,
     hypotheses: list[Hypothesis],
 ) -> IncidentReport:
-    anthropic_client = get_anthropic_client()
     hypotheses_json = format_hypotheses_payload(hypotheses)
 
     user_prompt = (
@@ -72,20 +56,15 @@ def investigate_incident(
         "Return the final timeline, narrative, and recommended steps."
     )
 
-    runner_result = anthropic_client.beta.messages.tool_runner(
-        model=MODEL_NAME,
-        max_tokens=4096,
-        system=build_system_prompt(),
-        thinking=THINKING_CONFIG,
-        output_config={
-            "effort": OUTPUT_CONFIG["effort"],
-            "format": {"type": "json_schema", "schema": InvestigatorOutput.model_json_schema()},
-        },
-        tools=[query_graph, query_metrics, query_logs, query_changes],
-        messages=[{"role": "user", "content": user_prompt}],
+    structured_result = run_agent_loop(
+        system_prompt=build_system_prompt(),
+        user_prompt=user_prompt,
+        tool_schemas=TOOL_SCHEMAS,
+        execute=execute_tool,
+        response_model=InvestigatorOutput,
+        max_tokens=INVESTIGATOR_MAX_TOKENS,
     )
 
-    structured_result = extract_investigator_output(runner_result)
     audit_hash = generate_fallback_audit_hash(structured_result.narrative)
 
     return IncidentReport(
