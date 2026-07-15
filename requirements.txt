@@ -13,7 +13,7 @@ scikit-learn>=1.5
 networkx>=3.3
 neo4j>=5.24
 
-dowhy>=0.11
+dowhy
 
 openai>=1.50
 
