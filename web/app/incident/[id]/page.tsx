@@ -45,6 +45,27 @@ export default function IncidentPage({ params }: PageProps) {
     setLoading(true);
     setError(null);
 
+    const uploaded =
+      typeof window !== "undefined" ? sessionStorage.getItem(`analyzed:${resolvedParams.id}`) : null;
+    if (uploaded) {
+      try {
+        const parsed = JSON.parse(uploaded);
+        setIncident(parsed.report);
+        setTopology(parsed.topology);
+        setTimelineFilterIndex(parsed.report.timeline.length - 1);
+        setLoading(false);
+        setIsBreachSequence(true);
+        setTimeout(() => {
+          if (active) setIsBreachSequence(false);
+        }, 2000);
+        return () => {
+          active = false;
+        };
+      } catch {
+        // corrupt cache — fall through to the API
+      }
+    }
+
     Promise.all([getIncident(resolvedParams.id), getTopology()])
       .then(([incData, topoData]) => {
         if (!active) return;
