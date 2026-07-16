@@ -7,7 +7,6 @@ import MetricStrip from "../../../components/MetricStrip";
 import TopologyGraph from "../../../components/TopologyGraph";
 import IncidentDetailPanel from "../../../components/IncidentDetailPanel";
 import InvestigationTabs from "../../../components/InvestigationTabs";
-import DemoLauncher from "../../../components/DemoLauncher";
 import { IncidentReport, Component, Dependency } from "../../../lib/types";
 import { getIncident, getTopology } from "../../../lib/api";
 
@@ -23,9 +22,6 @@ export default function IncidentPage({ params }: PageProps) {
   const [telemetry, setTelemetry] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Active scenario name for trial/indicator
-  const [activeScenarioLabel, setActiveScenarioLabel] = useState<string | null>(null);
 
   // Timeline scrub filtering state
   const [timelineFilterIndex, setTimelineFilterIndex] = useState<number>(999);
@@ -246,18 +242,6 @@ export default function IncidentPage({ params }: PageProps) {
         detectedAt={incident.detected_at}
         auditHash={incident.audit_hash}
         symptom={incident.symptom}
-      />
-
-      {/* Demo Launcher */}
-      <DemoLauncher 
-        onScenarioLoaded={(incidentData, label) => {
-          setIncident(incidentData);
-          setTimelineFilterIndex(incidentData.timeline.length - 1);
-          setIsBreachSequence(true);
-          setTimeout(() => setIsBreachSequence(false), 2000);
-        }}
-        activeScenarioLabel={activeScenarioLabel}
-        setActiveScenarioLabel={setActiveScenarioLabel}
       />
 
       {/* 2. MetricStrip */}

@@ -2,39 +2,35 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, ShieldCheck, Zap, ArrowRight, ShieldAlert, Database, Scissors, Settings, WifiOff, Radar } from "lucide-react";
+import { Activity, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { getTopology, getAuditVerification } from "../lib/api";
+import { getTopology, getAuditVerification, getUsageStats, UsageStats } from "../lib/api";
 import { Component } from "../lib/types";
 import IncidentUploader from "../components/IncidentUploader";
-
-const DEMO_SCENARIOS = [
-  { id: "link_degradation", label: "Fiber Cut", icon: Scissors, color: "text-[#E50914]" },
-  { id: "bad_config_push", label: "Bad Configuration", icon: Settings, color: "text-[#FFA53B]" },
-  { id: "ddos_flood", label: "DDoS Attack", icon: ShieldAlert, color: "text-[#E50914]" },
-  { id: "capacity_exhaustion", label: "Pool Exhaustion", icon: Database, color: "text-[#FFA53B]" },
-  { id: "nic_failure", label: "NIC Failure", icon: WifiOff, color: "text-[#A3A3A8]" },
-  { id: "port_scan", label: "Port Scan", icon: Radar, color: "text-[#2ECC71]" },
-];
 
 export default function Home() {
   const [nodes, setNodes] = useState<Component[]>([]);
   const [auditStatus, setAuditStatus] = useState<any>(null);
+  const [stats, setStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     Promise.all([
       getTopology().catch(() => ({ components: [] })),
-      getAuditVerification().catch(() => null)
-    ]).then(([topo, audit]) => {
+      getAuditVerification().catch(() => null),
+      getUsageStats().catch(() => null)
+    ]).then(([topo, audit, usage]) => {
       if (!active) return;
       setNodes(topo.components);
       setAuditStatus(audit);
+      setStats(usage);
       setLoading(false);
     });
     return () => { active = false; };
   }, []);
+
+  const incidentsAnalyzed = stats?.incidents_analyzed ?? 0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -62,10 +58,6 @@ export default function Home() {
       >
         {/* HERO SECTION */}
         <motion.div variants={itemVariants} className="text-center flex flex-col items-center gap-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 text-[#E50914] text-[10px] font-bold uppercase tracking-widest mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-            Global Diagnostics Active
-          </div>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white">
             NETWORK OPERATIONS
           </h1>
@@ -97,19 +89,23 @@ export default function Home() {
               )}
             </div>
             <div>
-              <div className="text-3xl font-black text-white">{loading ? "..." : (auditStatus?.verified_events || 0)}</div>
+              <div className="text-3xl font-black text-white">{loading ? "..." : (auditStatus?.total_events ?? 0)}</div>
               <div className="text-[11px] text-[#6B6B70] font-bold uppercase tracking-wider mt-1">Audit Ledger Events</div>
             </div>
           </div>
 
           <div className="bg-[#16161A] border border-[#2A2A2E] p-6 rounded-2xl flex flex-col justify-between shadow-soft hover:border-[#2A2A2E]/80 transition-colors">
             <div className="flex items-center justify-between mb-4">
-              <Zap size={20} className="text-[#E50914]" />
-              <span className="text-[10px] font-bold text-[#E50914] uppercase tracking-wider bg-[#E50914]/10 px-2 py-0.5 rounded">High Alert</span>
+              <Zap size={20} className={incidentsAnalyzed > 0 ? "text-[#FFA53B]" : "text-[#A3A3A8]"} />
+              {incidentsAnalyzed > 0 ? (
+                <span className="text-[10px] font-bold text-[#FFA53B] uppercase tracking-wider bg-[#FFA53B]/10 px-2 py-0.5 rounded">Live</span>
+              ) : (
+                <span className="text-[10px] font-bold text-[#6B6B70] uppercase tracking-wider bg-[#6B6B70]/10 px-2 py-0.5 rounded">Idle</span>
+              )}
             </div>
             <div>
-              <div className="text-3xl font-black text-white">1</div>
-              <div className="text-[11px] text-[#6B6B70] font-bold uppercase tracking-wider mt-1">Active Incident</div>
+              <div className="text-3xl font-black text-white">{loading ? "..." : incidentsAnalyzed}</div>
+              <div className="text-[11px] text-[#6B6B70] font-bold uppercase tracking-wider mt-1">{incidentsAnalyzed === 1 ? "Incident Analyzed" : "Incidents Analyzed"}</div>
             </div>
           </div>
         </motion.div>
@@ -131,22 +127,6 @@ export default function Home() {
         {/* UPLOAD / ANALYZE YOUR OWN INCIDENT */}
         <motion.div variants={itemVariants} className="w-full max-w-2xl mx-auto">
           <IncidentUploader />
-        </motion.div>
-
-        {/* SCENARIOS PREVIEW ROW */}
-        <motion.div variants={itemVariants} className="pt-12 border-t border-[#2A2A2E]/50 w-full flex flex-col items-center">
-          <span className="text-[10px] text-[#6B6B70] font-bold uppercase tracking-widest mb-6 text-center">Available Investigation Scenarios</span>
-          <div className="flex flex-wrap justify-center gap-6">
-            {DEMO_SCENARIOS.map((sc) => {
-              const Icon = sc.icon;
-              return (
-                <div key={sc.id} className="flex items-center gap-3 text-[#A3A3A8] opacity-70">
-                  <Icon size={16} className={sc.color} />
-                  <span className="text-xs font-semibold">{sc.label}</span>
-                </div>
-              );
-            })}
-          </div>
         </motion.div>
       </motion.div>
     </div>
