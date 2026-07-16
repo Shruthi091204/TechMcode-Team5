@@ -48,6 +48,21 @@ export async function getAuditVerification(): Promise<any> {
   return await response.json();
 }
 
+export interface UsageStats {
+  incidents_analyzed: number;
+  nodes_analyzed: number;
+  audit_events: number;
+}
+
+export async function getUsageStats(): Promise<UsageStats> {
+  const url = `${API_BASE_URL}/stats`;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch usage stats: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
 export interface HealthyResult {
   status: "healthy";
   components_analyzed: number;
