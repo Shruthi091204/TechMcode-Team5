@@ -48,6 +48,32 @@ export async function getAuditVerification(): Promise<any> {
   return await response.json();
 }
 
+export interface KnowledgeMatch {
+  id: string;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+export interface KnowledgeResult {
+  runbooks: KnowledgeMatch[];
+  similar_incidents: KnowledgeMatch[];
+}
+
+export async function retrieveKnowledge(query: string, k = 3): Promise<KnowledgeResult> {
+  const url = `${API_BASE_URL}/knowledge/retrieve`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, k }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to retrieve knowledge: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
 export interface UsageStats {
   incidents_analyzed: number;
   nodes_analyzed: number;

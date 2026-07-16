@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion as m } from "framer-motion";
-import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp, Pause } from "lucide-react";
+import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp, Pause, BookOpen } from "lucide-react";
 import { IncidentReport, TimelineEvent } from "../lib/types";
+import { retrieveKnowledge, KnowledgeResult } from "../lib/api";
 import CounterfactualPanel from "./CounterfactualPanel";
 
 // Typewriter Component for cinematic text reveal
@@ -45,8 +46,20 @@ export default function InvestigationTabs({
   timelineFilterIndex,
   setTimelineFilterIndex,
 }: InvestigationTabsProps) {
-  const [expandedBox, setExpandedBox] = useState<"investigation" | "evidence" | "timeline" | "actions" | null>(null);
+  const [expandedBox, setExpandedBox] = useState<"investigation" | "evidence" | "timeline" | "actions" | "knowledge" | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [knowledge, setKnowledge] = useState<KnowledgeResult | null>(null);
+
+  useEffect(() => {
+    const faultType = activeHypothesis?.fault_type || "";
+    const rootCause = activeHypothesis?.root_cause_component || "";
+    const query = `${faultType} on ${rootCause}. ${incident.symptom}`.trim();
+    let active = true;
+    retrieveKnowledge(query, 3)
+      .then((result) => { if (active) setKnowledge(result); })
+      .catch(() => { if (active) setKnowledge(null); });
+    return () => { active = false; };
+  }, [incident.incident_id, incident.symptom, activeHypothesis?.root_cause_component, activeHypothesis?.fault_type]);
 
   // Auto-Scrubber Logic
   useEffect(() => {
@@ -124,12 +137,18 @@ export default function InvestigationTabs({
       summary: `${incident.recommended_steps.length} mitigation tasks`,
       icon: Play,
     },
+    {
+      id: "knowledge" as const,
+      label: "KNOWLEDGE BASE",
+      summary: `${knowledge?.runbooks.length ?? 0} playbooks retrieved`,
+      icon: BookOpen,
+    },
   ];
 
   return (
     <div className="flex flex-col gap-6 w-full mt-4">
       {/* 4-Column Card Grid (Collapsed states) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {boxes.map((box) => {
           const isExpanded = expandedBox === box.id;
           const Icon = box.icon;
@@ -395,6 +414,85 @@ export default function InvestigationTabs({
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* KNOWLEDGE BASE (AGENTIC RAG) PANEL */}
+              {expandedBox === "knowledge" && (
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-[#9b51e0]/15 text-[#9b51e0] shrink-0">
+                      <BookOpen size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-white tracking-wide">Agentic RAG</h3>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#9b51e0]/15 text-[#9b51e0] font-bold uppercase tracking-widest">
+                          NOC Knowledge Base
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#A3A3A8] mt-1 leading-relaxed max-w-2xl">
+                        Semantic retrieval over the runbook and past-incident corpus (ChromaDB vector store with OpenAI embeddings).
+                        The remediation and investigator agents ground their steps in these playbooks and cite the runbook id.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[11px] font-bold text-[#9b51e0] uppercase tracking-wider">Retrieved Runbooks</span>
+                      <span className="text-[10px] text-[#A3A3A8] font-bold">{knowledge?.runbooks.length ?? 0} matches via semantic search</span>
+                    </div>
+                    {!knowledge || knowledge.runbooks.length === 0 ? (
+                      <span className="text-sm text-[#6B6B70] italic">
+                        Knowledge base offline or no match. The agents safely fall back to evidence-grounded steps.
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {knowledge.runbooks.map((rb) => (
+                          <div key={rb.id} className="bg-[#1F1F24] border border-[#2A2A2E] rounded-xl p-4 shadow-soft">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-[#9b51e0]/15 text-[#9b51e0] font-bold tracking-wider shrink-0">
+                                  {rb.id}
+                                </span>
+                                <span className="text-sm font-bold text-white truncate">{rb.title}</span>
+                              </div>
+                              <span className="text-[10px] text-[#9b51e0] font-bold whitespace-nowrap">
+                                {Math.round(rb.score * 100)}% match
+                              </span>
+                            </div>
+                            <div className="h-1 w-full bg-[#16161A] rounded-full overflow-hidden mb-2">
+                              <div className="h-full bg-[#9b51e0]" style={{ width: `${Math.max(6, Math.round(rb.score * 100))}%` }} />
+                            </div>
+                            <p className="text-xs text-[#A3A3A8] leading-relaxed line-clamp-2">{rb.snippet}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {knowledge && knowledge.similar_incidents.length > 0 && (
+                    <div className="border-t border-[#2A2A2E]/50 pt-5">
+                      <span className="text-[11px] font-bold text-[#FFA53B] uppercase tracking-wider">Similar Past Incidents</span>
+                      <div className="flex flex-col gap-3 mt-3">
+                        {knowledge.similar_incidents.map((inc) => (
+                          <div key={inc.id} className="bg-[#1F1F24] border border-[#2A2A2E] rounded-xl p-4 shadow-soft flex items-start gap-3">
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-[#FFA53B]/15 text-[#FFA53B] font-bold tracking-wider shrink-0 mt-0.5">
+                              {inc.id}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-white">{inc.title}</span>
+                                <span className="text-[10px] text-[#FFA53B] font-bold">{Math.round(inc.score * 100)}% match</span>
+                              </div>
+                              <p className="text-xs text-[#A3A3A8] leading-relaxed mt-1 line-clamp-2">{inc.snippet}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

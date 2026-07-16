@@ -1,0 +1,82 @@
+[
+  {
+    "id": "PAST-INC-2041",
+    "title": "Database pool exhaustion after a max_connections change",
+    "fault_type": "config_pool_exhaustion",
+    "symptom": "web tier latency breached the 100ms SLA",
+    "root_cause": "db-01",
+    "impact_path": "db-01 -> app-03 -> web-02",
+    "resolution": "Rolled back the config change that lowered max_connections from 500 to 150; connections drained and latency recovered within one cycle.",
+    "summary": "A configuration push reduced the database connection ceiling, connections pinned flat at the new limit, and the application and web tiers queued behind it. Rolling the change back restored service."
+  },
+  {
+    "id": "PAST-INC-2088",
+    "title": "Application capacity exhaustion cascading to the web tier",
+    "fault_type": "capacity_exhaustion",
+    "symptom": "web tier response times degraded sharply",
+    "root_cause": "app-04",
+    "impact_path": "app-04 -> web-02",
+    "resolution": "Scaled the application worker pool and fixed the slow downstream call that was blocking workers; queue drained and latency normalised.",
+    "summary": "The application tier saturated its worker pool behind a slow dependency, its request queue grew while throughput stayed flat, and the web tier latency rose in step. Fixing the downstream block resolved it."
+  },
+  {
+    "id": "PAST-INC-2103",
+    "title": "Volumetric DDoS flood at the edge load balancer",
+    "fault_type": "ddos_flood",
+    "symptom": "load balancer connection count spiked and legitimate requests failed",
+    "root_cause": "app-06",
+    "impact_path": "app-06 -> web-03",
+    "resolution": "Enabled rate limiting and SYN-cookie protection, blocked the abusive source ranges, and engaged upstream scrubbing.",
+    "summary": "A sudden flood of new connections from a narrow set of sources exhausted socket capacity at the edge while backend CPU stayed low. Edge rate limiting and scrubbing absorbed the burst."
+  },
+  {
+    "id": "PAST-INC-2117",
+    "title": "NIC failure dropping frames on a switch port",
+    "fault_type": "nic_failure",
+    "symptom": "packet loss and error rate rose on a single host path",
+    "root_cause": "app-05",
+    "impact_path": "app-05 -> web-03",
+    "resolution": "Moved the workload to the standby bond member, replaced the failing NIC and cable, and cleared counters.",
+    "summary": "Interface error and discard counters climbed on one host while others stayed clean, isolating a hardware NIC fault. Failing over to the standby interface and replacing the NIC cleared the loss."
+  },
+  {
+    "id": "PAST-INC-2129",
+    "title": "Link degradation on a core transport span",
+    "fault_type": "link_degradation",
+    "symptom": "packet loss and jitter increased across a network path",
+    "root_cause": "app-09",
+    "impact_path": "app-09 -> web-05",
+    "resolution": "Failed traffic to the redundant path, replaced a degraded optic, and opened a carrier ticket for the provider span.",
+    "summary": "CRC and error counters on a transport interface grew with rising loss and jitter, pointing at a degrading optical span. Draining the link and replacing the optic restored the path."
+  },
+  {
+    "id": "PAST-INC-2134",
+    "title": "Port-scan reconnaissance sweep against the edge",
+    "fault_type": "port_scan",
+    "symptom": "load balancer saw a burst of short-lived connections to many ports",
+    "root_cause": "app-08",
+    "impact_path": "app-08 -> web-04",
+    "resolution": "Blocked the scanning source at the edge ACL, confirmed no unintended service exposure, and raised a security ticket.",
+    "summary": "Many short connections to distinct ports from a single source, correlated with IDS alerts, identified a scan rather than real load. Blocking the source at the edge stopped the noise."
+  },
+  {
+    "id": "PAST-INC-2150",
+    "title": "Bad DNS record push breaking name resolution",
+    "fault_type": "bad_config_push",
+    "symptom": "application error rate spiked on failed name lookups",
+    "root_cause": "dns-01",
+    "impact_path": "dns-01 -> web-01",
+    "resolution": "Rolled back the erroneous DNS record, flushed caches, and lowered the TTL to speed propagation.",
+    "summary": "A zone edit introduced a wrong record just before onset, producing SERVFAIL/NXDOMAIN responses that drove application errors. Reverting the record and flushing caches recovered resolution."
+  },
+  {
+    "id": "PAST-INC-2166",
+    "title": "Bad configuration push regressing the web tier",
+    "fault_type": "bad_config_push",
+    "symptom": "web tier latency and errors rose immediately after a deploy",
+    "root_cause": "app-03",
+    "impact_path": "app-03 -> web-02",
+    "resolution": "Rolled the deploy back to the last-known-good configuration; the symptom cleared within one propagation cycle.",
+    "summary": "A deployment changed an application parameter seconds before onset and the web tier degraded in step. Rolling back to the previous configuration restored normal behaviour."
+  }
+]

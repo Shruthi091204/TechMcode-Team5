@@ -62,7 +62,7 @@ export default function Home() {
             NETWORK OPERATIONS
           </h1>
           <p className="text-[#A3A3A8] text-lg max-w-2xl font-medium">
-            AI-driven root cause analysis, automated topological propagation tracking, and cryptographically verified evidence ledgers.
+            Topology-constrained causal analysis, agentic-RAG remediation grounded in NOC runbooks, and cryptographically verified evidence ledgers.
           </p>
         </motion.div>
 

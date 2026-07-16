@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from contracts.schemas import EvidenceKind, Hypothesis
 from rca.agents.runner import run_agent_loop
-from rca.agents.tools import execute_tool
+from rca.agents.tools import RETRIEVAL_TOOL_SCHEMAS, execute_tool
 
 REMEDIATION_MAX_TOKENS = 1500
 
@@ -21,7 +21,11 @@ def build_remediation_system_prompt() -> str:
         "strictly in the provided list of 'missing evidence'. "
         "Do not invent diagnostic checks for components or layers "
         "not mentioned in the missing evidence or root-cause path. "
-        "Convert each missing evidence statement into a specific operational command or verification step."
+        "Convert each missing evidence statement into a specific operational command or verification step. "
+        "Call the retrieve_runbook tool with the fault type and symptom to pull the relevant NOC playbook, "
+        "align each step with that playbook, and cite the runbook id in the step text "
+        "(for example 'per RB-DB-POOL-01'). "
+        "Optionally call retrieve_similar_incidents to reuse a proven past resolution."
     )
 
 
@@ -58,7 +62,7 @@ def generate_remediation_steps(leading_hypothesis: Hypothesis) -> list[str]:
         plan = run_agent_loop(
             system_prompt=build_remediation_system_prompt(),
             user_prompt=user_prompt,
-            tool_schemas=[],
+            tool_schemas=RETRIEVAL_TOOL_SCHEMAS,
             execute=execute_tool,
             response_model=RemediationPlan,
             max_tokens=REMEDIATION_MAX_TOKENS,

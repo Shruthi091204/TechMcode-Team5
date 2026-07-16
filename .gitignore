@@ -7,7 +7,6 @@ IMPLEMENTATION.md
 *.plan.md
 NOTES.md
 TODO.md
-explanation.pdf
 
 # --- Organizer datasets (large, not ours to redistribute) ---
 archive/
@@ -48,6 +47,7 @@ venv/
 data/
 incidents/audit_chain.jsonl
 incidents/usage_stats.json
+knowledge/.chroma/
 test_scenarios/
 
 # my annoying ahh ai tool

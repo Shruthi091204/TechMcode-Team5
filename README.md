@@ -58,6 +58,7 @@ This is the **"vending machine over slot machine"** principle: determinism where
 - **Three-tier evidence ledger.** Every hypothesis separates **confirmed evidence** (cited to a raw record), **correlated signals**, and **missing evidence**, and the missing evidence *is* the recommended next-steps list.
 - **Counterfactual replay.** For example, "removing config change CHG-4212 restores web-02 to baseline."
 - **Bounded, agentic AI.** A skeptic (adversarial STORM verification), an investigator (narrative and timeline), and a remediation agent (grounded diagnostic steps), each an OpenAI tool-calling agent.
+- **Runbook-grounded remediation (agentic RAG).** The remediation and investigator agents retrieve from a NOC runbook and past-incident knowledge base (ChromaDB vector store plus OpenAI embeddings) and cite the playbook id behind each step, so recommendations reflect real operational procedure rather than generic model knowledge.
 - **Upload your own data.** Analyze any contract-conforming incident bundle, not just the canned demo.
 - **Healthy-state detection.** Upload a fault-free dataset and receive an "All Systems Nominal" report that explains *why* it is healthy.
 - **Tamper-evident audit trail.** Every investigation step is written to a SHA-256 hash-chained log with a verification endpoint.
@@ -94,23 +95,12 @@ The project is organised as six isolated layers. Freezing the data contract firs
 2. **Detect.** A MAD (median-absolute-deviation) baseline over a pre-incident window, combined with PELT change-point detection, flags anomalies and, crucially, their **onset time** rather than just a threshold crossing.
 3. **Constrain.** Candidate root causes are filtered to anomalous components that have a **topology dependency path** to the symptom. Components with no path are rejected as decoys, and the rejection is surfaced to the user.
 4. **Attribute and rank.** A weighted model combines topology-constrained causal attribution (DoWhy, with a deterministic fallback), config-change proximity, evidence strength, temporal precedence, "rootness" (how many other suspects a candidate explains), and severity. Severity is deliberately down-weighted so victims never outrank causes.
-5. **Explain (optional AI).** The skeptic agent adversarially tries to *disprove* the top hypotheses; the investigator writes the timeline and narrative; the remediation agent converts the missing-evidence ledger into concrete diagnostic steps.
+5. **Explain (optional AI).** The skeptic agent adversarially tries to *disprove* the top hypotheses; the investigator writes the timeline and narrative; the remediation agent retrieves the matching NOC runbooks from the knowledge base and converts the missing-evidence ledger into concrete diagnostic steps that cite the playbook they came from.
 6. **Audit.** Every step is appended to a hash-chained ledger that can be independently verified.
 
-### The ranking formula
+### How the ranking is weighted
 
-The final confidence score is a transparent weighted sum, not a hidden model:
-
-```
-confidence = 0.30 * causal_attribution
-           + 0.25 * config_change_proximity
-           + 0.20 * evidence_strength
-           + 0.10 * temporal_precedence
-           + 0.10 * rootness
-           + 0.05 * severity
-```
-
-Severity (how bad a component *looks*) carries only 5 percent of the weight. Roughly 75 percent sits on causation, what changed, and evidence, which is precisely why the true cause wins even when a downstream victim shows scarier numbers. Decoys are floored below every genuine candidate.
+The confidence score is a transparent weighted combination of the signals above, not a hidden model. The weighting is deliberate: the majority of the score sits on causal attribution, what recently changed, and evidence strength, while severity (how bad a component *looks*) carries the smallest share. That is precisely why the true cause wins even when a downstream victim shows scarier numbers, and why decoys are floored below every genuine candidate.
 
 ## Tech stack
 
@@ -120,6 +110,7 @@ Severity (how bad a component *looks*) carries only 5 percent of the weight. Rou
 | Anomaly detection | NumPy and SciPy robust baselines, `ruptures` PELT change-point |
 | Causal engine | `networkx` topology twin, DoWhy GCM attribution (deterministic fallback), seeded for reproducibility |
 | Reasoning agents | OpenAI (structured outputs plus native tool-calling), bounded confidence influence |
+| Knowledge / RAG | ChromaDB vector store, OpenAI `text-embedding-3-small` embeddings, runbook and past-incident retrieval |
 | API | FastAPI and Uvicorn |
 | Frontend | Next.js 15, React 19, Cytoscape.js, Recharts, Tailwind, Framer Motion |
 | Audit | SHA-256 hash-chained JSONL ledger |
@@ -133,12 +124,15 @@ src/rca/
   graph/            networkx topology twin + impact-path / blast-radius queries
   causal/           candidate filter, attribution, counterfactual, evidence ledger, ranker
   agents/           OpenAI skeptic / investigator / remediation + the tool-calling runner
+  knowledge/        agentic RAG retrieval over the runbook + past-incident knowledge base (ChromaDB)
   synth/            synthetic incident generator (inject a known cause, benchmark recovery)
   audit/            SHA-256 hash-chained audit log + verifier
-  api/              FastAPI routes (topology, incident, replay, analyze, audit)
+  api/              FastAPI routes (topology, incident, replay, analyze, audit, stats)
+knowledge/          NOC runbook corpus + past-incident corpus (source for the RAG index)
+scripts/            build_knowledge.py (build the vector index)
 eval/               accuracy benchmarks (synth_eval.py, run_eval.py)
 web/                Next.js NOC dashboard (upload, analyze, report; healthy view)
-tests/              contract + engine + detection + generator + upload suites (300+ tests)
+tests/              contract + engine + detection + generator + upload + retrieval suites (340+ tests)
 docs/               architecture diagram, architecture notes, demo script
 Makefile            setup / lint / test / check targets
 ```
@@ -157,6 +151,9 @@ Makefile            setup / lint / test / check targets
 # from the repository root
 make setup                              # create .venv and install Python dependencies
 cp .env.example .env                    # then edit .env:  OPENAI_API_KEY=sk-...  OPENAI_MODEL=gpt-4.1
+
+# (optional) build the RAG knowledge index up front; it also builds lazily on first use
+PYTHONPATH=src .venv/bin/python scripts/build_knowledge.py
 
 # start the API (http://localhost:8000)
 PYTHONPATH=src .venv/bin/uvicorn rca.api.main:app --port 8000
@@ -258,7 +255,7 @@ On the golden reference incident, the engine correctly ranks `db-01` first and *
 Root-cause analysis must be trustworthy and reproducible. An LLM asked "what is the root cause?" is a slot machine: plausible but unaccountable, and different on every run. Our engine is deterministic and every ranking decision is explainable from the evidence ledger. The LLM is used only for language tasks (explanation, adversarial review, remediation), where it adds value without risking correctness.
 
 **How does it actually separate causation from correlation?**
-By constraining candidates to those with a real topology dependency path to the symptom, and by down-weighting severity (5 percent of the score) while up-weighting causal attribution, config proximity, evidence, and rootness (roughly 75 percent). A victim that looks worse than its cause still loses, because it cannot explain the other victims and the cause can.
+By constraining candidates to those with a real topology dependency path to the symptom, and by deliberately down-weighting severity while up-weighting causal attribution, config proximity, evidence, and rootness. A victim that looks worse than its cause still loses, because it cannot explain the other victims and the cause can.
 
 **Does it need Docker or a special testbed to run?**
 No. It is mathematics, graph traversal, and API calls over whatever contract-conforming data you provide. Upload a dataset and it works.
@@ -277,7 +274,7 @@ Yes. A SHA-256 hash-chained ledger of every investigation step, verifiable at `G
 - **Deep-path non-config faults.** For a non-config fault three or more hops deep, causal attribution can occasionally rank an intermediate hop first, dropping the true cause to second or third. Config faults and shallow faults recover robustly. A rootness tie-break in the ranker is the planned fix.
 - **The "Full AI investigation" mode** requires `OPENAI_API_KEY`. The deterministic mode is the always-available default.
 - **Displayed fault type** is inferred from config presence, so a non-config injected fault may display a related fault label.
-- **Roadmap:** agentic RAG over a NOC runbook knowledge base (grounded remediation), a ranker tie-break for deep paths, and ingestion adapters for additional real-capture datasets.
+- **Roadmap:** a ranker tie-break for deep non-config paths, feedback-driven retrieval ranking and an expanded runbook corpus for the RAG layer, and ingestion adapters for additional real-capture datasets.
 
 ## Licence
 
