@@ -1,0 +1,378 @@
+[
+  {
+    "id": "RB-DB-POOL-01",
+    "title": "Database connection pool exhaustion",
+    "applies_to": ["config_pool_exhaustion", "capacity_exhaustion", "database", "connection_count", "too many connections", "max_connections"],
+    "diagnostic_steps": [
+      "On the database host run 'SHOW PROCESSLIST' and 'SHOW STATUS LIKE \"Threads_connected\"' to confirm connections are pinned at the configured ceiling.",
+      "Compare Threads_connected against max_connections; a flat line exactly at the limit indicates pool exhaustion, not organic load.",
+      "Correlate the onset timestamp with the most recent config change (for example CHG-* that lowered max_connections or pool size).",
+      "Check application-tier logs for 'Too many connections' or 'Aborted connection' errors pointing at this database."
+    ],
+    "remediation": [
+      "If a recent config change reduced the limit, roll the change back to restore the previous max_connections / pool size.",
+      "Raise max_connections and the application connection-pool ceiling to a validated value, then reload without a full restart if supported.",
+      "Kill leaked or long-idle sessions and enable a connection-idle timeout to prevent recurrence.",
+      "Add pool-saturation alerting at 80 percent of the ceiling so the next event is caught before saturation."
+    ],
+    "verification": [
+      "Threads_connected drops below 80 percent of max_connections and downstream latency returns to its pre-incident baseline.",
+      "No new 'Too many connections' errors appear in application logs for one full traffic cycle."
+    ]
+  },
+  {
+    "id": "RB-DB-CAPACITY-01",
+    "title": "Database capacity exhaustion (CPU, memory, IO)",
+    "applies_to": ["capacity_exhaustion", "database", "cpu_pct", "mem_pct", "slow query", "saturation"],
+    "diagnostic_steps": [
+      "Inspect host CPU, memory and disk IO utilisation (top, vmstat, iostat) at the anomaly onset window.",
+      "Run 'SHOW FULL PROCESSLIST' and the slow-query log to find long-running or unindexed queries.",
+      "Check buffer-pool hit ratio and swap usage to distinguish memory pressure from CPU saturation."
+    ],
+    "remediation": [
+      "Terminate or throttle the offending queries and add the missing indexes identified in diagnostics.",
+      "Fail over to a replica or scale the instance vertically if saturation is sustained.",
+      "Introduce read-replica offloading or a query cache for the hot read path."
+    ],
+    "verification": [
+      "CPU and IO utilisation fall back within baseline and slow-query count returns to normal.",
+      "Downstream application latency recovers to its pre-incident median."
+    ]
+  },
+  {
+    "id": "RB-DDOS-LB-01",
+    "title": "DDoS / volumetric flood at the load balancer",
+    "applies_to": ["ddos_flood", "load_balancer", "connection_count", "packet flood", "socket exhaustion", "high alert"],
+    "diagnostic_steps": [
+      "Check the load balancer for a sharp spike in new connections per second and SYN backlog (netstat -s, ss -s).",
+      "Identify whether traffic concentrates on a small set of source IPs or subnets versus broadly distributed sources.",
+      "Confirm upstream links are saturated while backend application CPU stays comparatively low (a signature of edge flooding)."
+    ],
+    "remediation": [
+      "Enable rate limiting and SYN-cookie protection on the load balancer; drop or tarpit the abusive source ranges.",
+      "Engage upstream scrubbing or the DDoS mitigation provider for volumetric absorption.",
+      "Temporarily raise connection and file-descriptor limits to ride out the burst without dropping legitimate traffic."
+    ],
+    "verification": [
+      "New-connection rate returns to baseline and legitimate request success rate recovers.",
+      "SYN backlog drains and no socket-exhaustion errors remain in the load balancer log."
+    ]
+  },
+  {
+    "id": "RB-LINK-DEGRADE-01",
+    "title": "Link degradation / fiber path disruption",
+    "applies_to": ["link_degradation", "fiber cut", "network", "packet_loss_pct", "jitter_ms", "throughput_mbps"],
+    "diagnostic_steps": [
+      "Run 'show interfaces' on the affected switch and read error, CRC and discard counters on the transport interface.",
+      "Measure packet loss and jitter across the path (ping, mtr) and compare against the healthy baseline.",
+      "Check optical light levels / SFP diagnostics (show interface transceiver) for a degraded or failing optic."
+    ],
+    "remediation": [
+      "Fail traffic over to the redundant path or LAG member and drain the degraded link.",
+      "Replace the failing optic or patch cable; open a carrier ticket if the degradation is on the provider span.",
+      "Clear interface counters after repair and monitor for recurring CRC growth."
+    ],
+    "verification": [
+      "Packet loss and jitter return to baseline and CRC/error counters stop incrementing.",
+      "Throughput on the path recovers to expected capacity."
+    ]
+  },
+  {
+    "id": "RB-NIC-FAILURE-01",
+    "title": "NIC failure / interface dropping frames",
+    "applies_to": ["nic_failure", "interface errors", "packet_loss_pct", "error_rate", "switch port", "discards"],
+    "diagnostic_steps": [
+      "Read interface error and discard counters on the host and the connected switch port (show interfaces counters errors).",
+      "Check dmesg / kernel ring buffer for NIC resets, link flaps or driver errors.",
+      "Test the port with a known-good host or move the host to a spare port to isolate NIC versus port versus cable."
+    ],
+    "remediation": [
+      "Move the workload to the standby NIC or bond member; disable the faulty interface.",
+      "Replace the NIC or reseat/replace the cable and transceiver; update the NIC driver/firmware if implicated.",
+      "Rebalance the bond and re-enable the interface once counters are clean."
+    ],
+    "verification": [
+      "Error and discard counters stay flat after the swap and packet loss clears.",
+      "The interface holds link with no flaps for a sustained monitoring window."
+    ]
+  },
+  {
+    "id": "RB-PORTSCAN-01",
+    "title": "Port scan / reconnaissance sweep",
+    "applies_to": ["port_scan", "security", "connection_count", "reconnaissance", "load_balancer", "many short connections"],
+    "diagnostic_steps": [
+      "Look for a burst of short-lived connections to many distinct ports from one or few source IPs in flow/connection logs.",
+      "Correlate with IDS/IPS alerts and firewall deny logs for the same source over the onset window.",
+      "Confirm the pattern is scanning (many ports, little payload) rather than legitimate high-volume traffic."
+    ],
+    "remediation": [
+      "Block or rate-limit the scanning source at the firewall / edge ACL and add it to the blocklist.",
+      "Verify no scanned service unexpectedly accepted a connection; close or firewall any exposed ports that should not be public.",
+      "Raise a security ticket and preserve the flow logs for follow-up."
+    ],
+    "verification": [
+      "Scan traffic from the source is dropped at the edge and connection-count noise returns to baseline.",
+      "No unexpected service exposure remains after the ACL review."
+    ]
+  },
+  {
+    "id": "RB-BADCONFIG-01",
+    "title": "Bad configuration push",
+    "applies_to": ["bad_config_push", "config change", "deployment", "regression", "change management"],
+    "diagnostic_steps": [
+      "Identify the config change (CHG-*) whose timestamp immediately precedes the symptom onset and read its before/after diff.",
+      "Confirm the changed parameter plausibly explains the observed degradation (for example a lowered limit, wrong endpoint, or disabled feature).",
+      "Check whether the change was deployed to all instances or only the affected subset."
+    ],
+    "remediation": [
+      "Roll the change back to the last-known-good configuration and redeploy.",
+      "If rollback is not possible, apply a corrected value and push through the standard change pipeline.",
+      "Add a pre-deploy validation check for the parameter class that caused the regression."
+    ],
+    "verification": [
+      "The symptom clears within one propagation cycle of the rollback and metrics return to baseline.",
+      "A post-change health check passes on every instance that received the change."
+    ]
+  },
+  {
+    "id": "RB-DNS-01",
+    "title": "DNS resolution failure or misconfiguration",
+    "applies_to": ["bad_config_push", "dns", "resolution", "nxdomain", "error_rate", "name lookup"],
+    "diagnostic_steps": [
+      "Query the DNS resolver directly (dig / nslookup) for the failing record and compare against the authoritative zone.",
+      "Check for a recent zone or resolver config change (TTL, record edit, forwarder change) around the onset.",
+      "Confirm whether failures are NXDOMAIN, SERVFAIL or timeouts to localise the fault (record vs resolver vs upstream)."
+    ],
+    "remediation": [
+      "Correct or roll back the erroneous DNS record / resolver configuration and flush caches.",
+      "Point clients at a healthy secondary resolver while the primary is repaired.",
+      "Lower the TTL temporarily so corrections propagate quickly."
+    ],
+    "verification": [
+      "Direct resolver queries return the correct record and application error rate driven by lookups recovers.",
+      "No SERVFAIL/NXDOMAIN spikes remain across the resolver fleet."
+    ]
+  },
+  {
+    "id": "RB-LATENCY-GEN-01",
+    "title": "General elevated latency triage",
+    "applies_to": ["latency_ms", "slow", "response time", "p99", "degradation"],
+    "diagnostic_steps": [
+      "Walk the dependency path from the symptomatic component upstream and compare per-hop latency to isolate where the increase originates.",
+      "Separate network latency (ping/traceroute) from service latency (application timing) at each hop.",
+      "Check for saturation (CPU, connections, IO) or a recent change on the first upstream hop that shows elevated latency."
+    ],
+    "remediation": [
+      "Address the root hop specifically (scale, roll back, or clear the saturating resource) rather than the symptomatic victim.",
+      "Shed or queue non-critical load to protect the hot path while the root cause is fixed."
+    ],
+    "verification": [
+      "P99 latency at the symptom returns to baseline once the identified upstream hop recovers."
+    ]
+  },
+  {
+    "id": "RB-PKTLOSS-GEN-01",
+    "title": "General packet loss triage",
+    "applies_to": ["packet_loss_pct", "drops", "network", "retransmits"],
+    "diagnostic_steps": [
+      "Measure loss per hop (mtr) to localise the lossy link or device.",
+      "Inspect interface discard/error counters and queue drops on the suspect device.",
+      "Check for congestion (throughput near capacity) versus hardware faults (CRC/errors)."
+    ],
+    "remediation": [
+      "Reroute around the lossy link or expand capacity if the cause is congestion.",
+      "Replace failing hardware/optics if the loss is driven by errors, then clear counters."
+    ],
+    "verification": [
+      "Per-hop loss returns to zero and TCP retransmit rate normalises."
+    ]
+  },
+  {
+    "id": "RB-CONN-SAT-01",
+    "title": "Connection / socket saturation",
+    "applies_to": ["connection_count", "socket exhaustion", "ephemeral ports", "capacity_exhaustion", "saturation"],
+    "diagnostic_steps": [
+      "Check open connections and TIME_WAIT/ephemeral-port usage (ss -s, netstat) against configured limits.",
+      "Identify whether saturation is inbound (clients) or outbound (to a dependency) to place the fault correctly.",
+      "Correlate with any limit change or a downstream slowdown causing connections to pile up."
+    ],
+    "remediation": [
+      "Raise file-descriptor and connection limits to a validated ceiling and enable connection reuse / keep-alive.",
+      "Fix the downstream slowdown that is causing back-pressure if saturation is a symptom rather than the cause.",
+      "Tune TIME_WAIT reuse and ephemeral-port range if port exhaustion is confirmed."
+    ],
+    "verification": [
+      "Active connection count falls below the ceiling and no new socket-exhaustion errors are logged."
+    ]
+  },
+  {
+    "id": "RB-CPU-SAT-01",
+    "title": "CPU saturation on a service host",
+    "applies_to": ["cpu_pct", "saturation", "capacity_exhaustion", "high load"],
+    "diagnostic_steps": [
+      "Identify the top CPU consumers (top, pidstat) and whether load is user, system or IO-wait dominated.",
+      "Correlate with a traffic surge, a recent deploy, or a runaway process/thread.",
+      "Check run-queue length and context-switch rate for scheduler contention."
+    ],
+    "remediation": [
+      "Roll back a regressing deploy, kill a runaway process, or scale out to add capacity.",
+      "Apply request rate limiting to protect the service while capacity is added."
+    ],
+    "verification": [
+      "CPU utilisation returns within baseline and request latency recovers."
+    ]
+  },
+  {
+    "id": "RB-MEM-PRESSURE-01",
+    "title": "Memory pressure / leak",
+    "applies_to": ["mem_pct", "oom", "leak", "swap", "capacity_exhaustion"],
+    "diagnostic_steps": [
+      "Track resident memory growth over time (RSS trend) to distinguish a leak from a one-off spike.",
+      "Check for OOM-killer events in the kernel log and swap-in/out activity.",
+      "Correlate memory growth with a recent deploy or a specific request pattern."
+    ],
+    "remediation": [
+      "Restart the leaking process to reclaim memory as an immediate mitigation, then roll back the introducing change.",
+      "Set memory limits and add heap/allocation profiling to find the leak source."
+    ],
+    "verification": [
+      "Resident memory stabilises and swap activity ceases; no further OOM events occur."
+    ]
+  },
+  {
+    "id": "RB-ERRORRATE-01",
+    "title": "Application error-rate spike (5xx)",
+    "applies_to": ["error_rate", "5xx", "exceptions", "degradation"],
+    "diagnostic_steps": [
+      "Break down errors by status code and endpoint to localise the failing dependency or code path.",
+      "Read application and dependency logs around the onset for the dominant exception signature.",
+      "Correlate with a deploy, a config change, or a downstream dependency degradation."
+    ],
+    "remediation": [
+      "Roll back the implicated deploy/config or fail over the failing dependency.",
+      "Enable a circuit breaker / graceful degradation for the failing dependency to contain blast radius."
+    ],
+    "verification": [
+      "Error rate returns to baseline and the dominant exception disappears from logs."
+    ]
+  },
+  {
+    "id": "RB-THREADPOOL-01",
+    "title": "Application thread-pool / worker exhaustion",
+    "applies_to": ["capacity_exhaustion", "application", "thread pool", "queue", "latency_ms"],
+    "diagnostic_steps": [
+      "Check active vs max worker threads and request-queue depth in application metrics.",
+      "Determine whether workers are blocked on a slow downstream call (database, cache, external API).",
+      "Look for a rising queue with flat throughput, the signature of pool exhaustion behind a slow dependency."
+    ],
+    "remediation": [
+      "Fix or fail over the slow downstream dependency causing the block, which is usually the real root cause.",
+      "Increase the worker pool and queue bounds to a validated size and add timeouts to blocked calls."
+    ],
+    "verification": [
+      "Queue depth drains, worker utilisation falls, and latency recovers to baseline."
+    ]
+  },
+  {
+    "id": "RB-CACHE-01",
+    "title": "Cache eviction storm / cold cache",
+    "applies_to": ["cache", "latency_ms", "hit ratio", "throughput_mbps", "capacity_exhaustion"],
+    "diagnostic_steps": [
+      "Check cache hit ratio and eviction rate; a sudden hit-ratio drop points to a cold or thrashing cache.",
+      "Correlate with a cache restart, a TTL/config change, or a key-space surge.",
+      "Confirm the downstream database load rose in step with the cache miss increase."
+    ],
+    "remediation": [
+      "Warm the cache (pre-load hot keys) and restore the previous eviction/TTL policy if a change caused thrashing.",
+      "Scale cache memory or shard the key space to reduce evictions."
+    ],
+    "verification": [
+      "Hit ratio recovers, database read load falls back, and latency normalises."
+    ]
+  },
+  {
+    "id": "RB-TLS-CERT-01",
+    "title": "TLS / certificate failure",
+    "applies_to": ["error_rate", "tls", "certificate", "handshake", "expiry"],
+    "diagnostic_steps": [
+      "Check certificate validity and expiry on the endpoint (openssl s_client) and the chain of trust.",
+      "Look for handshake failures in the proxy/load-balancer logs and a spike in TLS errors at the onset.",
+      "Correlate with a recent cert rotation or config change."
+    ],
+    "remediation": [
+      "Replace the expired or misissued certificate and reload the terminating proxy.",
+      "Roll back a broken cert/config rotation and re-run the rotation through the validated pipeline."
+    ],
+    "verification": [
+      "Handshakes succeed, the TLS error rate clears, and the served certificate is valid with a healthy expiry margin."
+    ]
+  },
+  {
+    "id": "RB-DISKIO-01",
+    "title": "Disk IO saturation",
+    "applies_to": ["capacity_exhaustion", "disk", "io wait", "latency_ms", "throughput_mbps"],
+    "diagnostic_steps": [
+      "Measure device utilisation and await time (iostat -x) to confirm the disk is the bottleneck.",
+      "Identify the heaviest IO process (iotop, pidstat -d) and whether it is reads, writes or fsync-bound.",
+      "Check for a full or near-full filesystem and log/backup jobs running at the onset."
+    ],
+    "remediation": [
+      "Throttle or reschedule the heavy IO job; move hot data to faster storage.",
+      "Free disk space and rotate logs; add IO capacity or provisioned IOPS if sustained."
+    ],
+    "verification": [
+      "Device await and utilisation return to baseline and IO-bound latency recovers."
+    ]
+  },
+  {
+    "id": "RB-ROUTING-FLAP-01",
+    "title": "Routing / BGP flap",
+    "applies_to": ["link_degradation", "routing", "bgp", "packet_loss_pct", "reachability"],
+    "diagnostic_steps": [
+      "Check routing-adjacency and BGP session state (show ip bgp summary) for flapping neighbours around the onset.",
+      "Read logs for repeated session up/down events and route withdrawals.",
+      "Correlate flaps with an underlying link error or a recent routing-policy change."
+    ],
+    "remediation": [
+      "Stabilise or dampen the flapping session; fix the underlying link error driving the flaps.",
+      "Roll back an errant routing-policy change and re-advertise the correct routes."
+    ],
+    "verification": [
+      "BGP sessions hold steady, routes are stable, and reachability/loss returns to baseline."
+    ]
+  },
+  {
+    "id": "RB-LB-HEALTH-01",
+    "title": "Load-balancer health-check failures / backend eviction",
+    "applies_to": ["load_balancer", "health check", "error_rate", "capacity_exhaustion", "backend down"],
+    "diagnostic_steps": [
+      "Check which backends the load balancer has marked unhealthy and the health-check failure reason.",
+      "Verify whether the backends are truly down or the health-check threshold/path was changed.",
+      "Assess remaining healthy capacity versus current load to see if the survivors are now overloaded."
+    ],
+    "remediation": [
+      "Restore or roll back a bad health-check configuration; repair and re-add genuinely failed backends.",
+      "Add capacity or shed load if too few backends remain healthy to serve current traffic."
+    ],
+    "verification": [
+      "Backend pool returns to full healthy count and error rate recovers with headroom on the survivors."
+    ]
+  },
+  {
+    "id": "RB-TCP-RETX-01",
+    "title": "Elevated TCP retransmissions",
+    "applies_to": ["packet_loss_pct", "retransmits", "jitter_ms", "throughput_mbps", "network"],
+    "diagnostic_steps": [
+      "Read TCP retransmit and out-of-order counters (netstat -s, nstat) at the affected host.",
+      "Localise the lossy segment with per-hop loss measurement (mtr).",
+      "Distinguish congestion-driven loss from a physical-layer fault via interface error counters."
+    ],
+    "remediation": [
+      "Resolve the underlying loss (reroute congestion or replace failing hardware).",
+      "Tune TCP parameters only as a stopgap; the durable fix is removing the loss source."
+    ],
+    "verification": [
+      "Retransmit rate falls to baseline and effective throughput recovers."
+    ]
+  }
+]

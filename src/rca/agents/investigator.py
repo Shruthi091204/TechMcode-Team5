@@ -25,6 +25,8 @@ def build_system_prompt() -> str:
         "construct a chronological timeline of events, "
         "write a clear, plain-English root-cause narrative, "
         "and recommend next diagnostic steps grounded strictly in missing evidence. "
+        "Consult the retrieve_runbook and retrieve_similar_incidents tools to ground your narrative and steps in "
+        "established NOC playbooks and past resolutions, and cite the runbook id when you rely on one. "
         "Never invent metrics, logs, or components not returned by your tools."
     )
 

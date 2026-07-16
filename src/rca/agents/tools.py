@@ -5,6 +5,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from rca.knowledge import retrieval
+
 FIXTURES_DIR = Path(__file__).resolve().parents[3] / "contracts" / "fixtures"
 
 
@@ -111,6 +113,14 @@ def query_changes(window_start: str, window_end: str) -> list[dict[str, Any]]:
     return matching_records
 
 
+def retrieve_runbook(query: str) -> list[dict[str, Any]]:
+    return retrieval.retrieve_runbooks(query)
+
+
+def retrieve_similar_incidents(description: str) -> list[dict[str, Any]]:
+    return retrieval.retrieve_similar_incidents(description)
+
+
 def _component_param() -> dict[str, Any]:
     return {"type": "string", "description": "Component identifier such as db-01 or web-02"}
 
@@ -139,6 +149,30 @@ def _function_schema(name: str, description: str, properties: dict[str, Any]) ->
     }
 
 
+RETRIEVAL_TOOL_SCHEMAS: list[dict[str, Any]] = [
+    _function_schema(
+        "retrieve_runbook",
+        "Retrieve the most relevant NOC runbooks (diagnostic and remediation playbooks) for a fault "
+        "description, symptom, or component condition. Ground recommended steps in these and cite the runbook id.",
+        {
+            "query": {
+                "type": "string",
+                "description": "Fault type, symptom, or condition, e.g. 'database connection pool exhaustion'",
+            }
+        },
+    ),
+    _function_schema(
+        "retrieve_similar_incidents",
+        "Retrieve past resolved incidents similar to the current one, including their root cause and resolution.",
+        {
+            "description": {
+                "type": "string",
+                "description": "Short description of the current symptom and suspected root cause",
+            }
+        },
+    ),
+]
+
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     _function_schema(
         "query_graph",
@@ -160,6 +194,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "Return configuration changes applied within a time window.",
         _window_params(),
     ),
+    *RETRIEVAL_TOOL_SCHEMAS,
 ]
 
 TOOL_DISPATCH = {
@@ -167,6 +202,8 @@ TOOL_DISPATCH = {
     "query_metrics": query_metrics,
     "query_logs": query_logs,
     "query_changes": query_changes,
+    "retrieve_runbook": retrieve_runbook,
+    "retrieve_similar_incidents": retrieve_similar_incidents,
 }
 
 
