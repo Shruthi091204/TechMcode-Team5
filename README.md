@@ -76,7 +76,7 @@ This is the **"vending machine over slot machine"** principle: determinism where
 ## Architecture
 
 <p align="center">
-  <img src="docs/architecture.png" alt="System architecture pipeline: five typed data inputs flow into anomaly detection and the topology-constrained causal engine, which together form the deterministic core, then into the bounded OpenAI reasoning layer with agentic RAG over a NOC knowledge base, the FastAPI backend, and the Next.js NOC dashboard, with a SHA-256 hash-chained audit trail spanning every step." width="960">
+  <img src="docs/architecture.png?v=2" alt="System architecture pipeline: five typed data inputs flow into anomaly detection and the topology-constrained causal engine, which together form the deterministic core, then into the bounded OpenAI reasoning layer with agentic RAG over a NOC knowledge base, the FastAPI backend, and the Next.js NOC dashboard, with a SHA-256 hash-chained audit trail spanning every step." width="960">
 </p>
 
 Data flows top to bottom. The **deterministic core** (anomaly detection plus the causal engine) decides the root cause; the **bounded AI layer** only explains and verifies it; and a **SHA-256 hash-chained audit trail** spans every step so the entire investigation is independently verifiable.
