@@ -7,7 +7,6 @@ import MetricStrip from "../../../components/MetricStrip";
 import TopologyGraph from "../../../components/TopologyGraph";
 import IncidentDetailPanel from "../../../components/IncidentDetailPanel";
 import InvestigationTabs from "../../../components/InvestigationTabs";
-import DemoLauncher from "../../../components/DemoLauncher";
 import { IncidentReport, Component, Dependency } from "../../../lib/types";
 import { getIncident, getTopology } from "../../../lib/api";
 
@@ -39,15 +38,15 @@ export default function IncidentPage({ params }: PageProps) {
   const [expandedTiers, setExpandedTiers] = useState<string[]>([]);
 
   // Cinematic Breach Sequence State
-  const [isBreachSequence, setIsBreachSequence] = useState<boolean>(true);
+  const [isBreachSequence, setIsBreachSequence] = useState<boolean>(false);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
 
-    const uploaded =
-      typeof window !== "undefined" ? sessionStorage.getItem(`analyzed:${resolvedParams.id}`) : null;
+    const uploaded = null; // FORCE BYPASS CACHE
+    // typeof window !== "undefined" ? sessionStorage.getItem(`analyzed:${resolvedParams.id}`) : null;
     if (uploaded) {
       try {
         const parsed = JSON.parse(uploaded);
@@ -56,10 +55,16 @@ export default function IncidentPage({ params }: PageProps) {
         setTelemetry(parsed.telemetry || []);
         setTimelineFilterIndex(parsed.report.timeline.length - 1);
         setLoading(false);
-        setIsBreachSequence(true);
-        setTimeout(() => {
-          if (active) setIsBreachSequence(false);
-        }, 2000);
+        const topH = parsed.report.hypotheses.find((h: any) => h.rank === 1) || parsed.report.hypotheses[0];
+        const isBreach = topH?.fault_type === 'ddos_flood' || topH?.fault_type === 'port_scan';
+        if (isBreach) {
+          setIsBreachSequence(true);
+          setTimeout(() => {
+            if (active) setIsBreachSequence(false);
+          }, 2000);
+        } else {
+          setIsBreachSequence(false);
+        }
         return () => {
           active = false;
         };
@@ -76,8 +81,14 @@ export default function IncidentPage({ params }: PageProps) {
         // Initialize timeline scrub range to the end of timeline
         setTimelineFilterIndex(incData.timeline.length - 1);
         setLoading(false);
-        setIsBreachSequence(true);
-        setTimeout(() => setIsBreachSequence(false), 2000); // 2-second cinematic reveal
+        const topH = incData.hypotheses.find((h: any) => h.rank === 1) || incData.hypotheses[0];
+        const isBreach = topH?.fault_type === 'ddos_flood' || topH?.fault_type === 'port_scan';
+        if (isBreach) {
+          setIsBreachSequence(true);
+          setTimeout(() => setIsBreachSequence(false), 2000); // 2-second cinematic reveal
+        } else {
+          setIsBreachSequence(false);
+        }
       })
       .catch((err) => {
         if (!active) return;
@@ -246,18 +257,6 @@ export default function IncidentPage({ params }: PageProps) {
         detectedAt={incident.detected_at}
         auditHash={incident.audit_hash}
         symptom={incident.symptom}
-      />
-
-      {/* Demo Launcher */}
-      <DemoLauncher 
-        onScenarioLoaded={(incidentData, label) => {
-          setIncident(incidentData);
-          setTimelineFilterIndex(incidentData.timeline.length - 1);
-          setIsBreachSequence(true);
-          setTimeout(() => setIsBreachSequence(false), 2000);
-        }}
-        activeScenarioLabel={activeScenarioLabel}
-        setActiveScenarioLabel={setActiveScenarioLabel}
       />
 
       {/* 2. MetricStrip */}

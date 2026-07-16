@@ -22,7 +22,6 @@ class AnalyzeIncidentRequest(BaseModel):
     hypotheses: list[Hypothesis] = Field(min_length=1)
 
 
-@lru_cache(maxsize=1)
 def load_fixture_incident() -> IncidentReport:
     raw_payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     return IncidentReport.model_validate(raw_payload)

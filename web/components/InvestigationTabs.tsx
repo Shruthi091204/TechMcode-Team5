@@ -182,12 +182,19 @@ export default function InvestigationTabs({
               {/* AI INVESTIGATION PANEL */}
               {expandedBox === "investigation" && (
                 <div className="flex flex-col gap-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-white mb-3 tracking-wide">AI Generated Narrative</h3>
-                    <div className="text-[14px] leading-relaxed text-[#D1D1D6] bg-[#2D1B4E]/30 p-5 border border-[#9b51e0]/40 rounded-xl shadow-[0_0_15px_rgba(155,81,224,0.15)] min-h-[100px]">
-                      <TypewriterText text={incident.narrative} speed={8} />
+                  <m.div 
+                    initial={{ opacity: 0, height: 0, overflow: "hidden" }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    transition={{ delay: 6, duration: 0.8 }}
+                  >
+                    <h3 className="text-sm font-bold text-white mb-3 tracking-wide flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#00C2FF]" /> 
+                      Final AI Narrative
+                    </h3>
+                    <div className="text-[14px] leading-relaxed text-white bg-[#00C2FF]/10 p-5 border border-[#00C2FF]/40 rounded-xl shadow-[0_0_20px_rgba(0,194,255,0.15)] min-h-[100px]">
+                      <TypewriterText text={incident.narrative} delay={6000} speed={8} />
                     </div>
-                  </div>
+                  </m.div>
 
                   <div className="border-t border-[#2A2A2E]/50 pt-5">
                     <h3 className="text-sm font-bold text-white mb-4 tracking-wide">Critical Validation Transcript</h3>
@@ -206,7 +213,7 @@ export default function InvestigationTabs({
                             <span>{chat.time}</span>
                           </div>
                           <p className="text-[13px] leading-relaxed text-[#EBEBF5]">
-                            <TypewriterText text={chat.message} delay={(idx + 1) * 800} speed={10} />
+                            <TypewriterText text={chat.message} delay={(idx + 1) * 1000} speed={10} />
                           </p>
                         </div>
                       ))}

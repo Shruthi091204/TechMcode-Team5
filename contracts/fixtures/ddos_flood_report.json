@@ -1,20 +1,18 @@
 {
   "schema_version": "1.0.0",
-  "incident_id": "INC-1001",
+  "incident_id": "INC-1002",
   "detected_at": "2026-07-14T14:32:40Z",
-  "symptom": "web-02 latency reached 142.8ms against a 100ms threshold, a +502% deviation from the 23.7ms baseline",
-  "symptom_component": "web-02",
+  "symptom": "lb-01 incoming connections reached 12050/s against a 1000/s threshold, a +14500% deviation from the 82/s baseline",
+  "symptom_component": "lb-01",
   "hypotheses": [
     {
       "rank": 1,
-      "root_cause_component": "db-01",
-      "fault_type": "config_pool_exhaustion",
+      "root_cause_component": "lb-01",
+      "fault_type": "ddos_flood",
       "confidence": 0.708,
       "causal_score": 0.375,
       "topology_path": [
-        "db-01",
-        "app-03",
-        "web-02"
+        "lb-01"
       ],
       "evidence": [
         {
@@ -328,7 +326,7 @@
       "kind": "log"
     }
   ],
-  "narrative": "Root Cause\n\nAt 2:30 PM, the database configuration was changed. The maximum number of allowed connections was reduced from 500 to 150.\n\nWhat happened next?\n\n- Within one minute, all 150 connections were in use.\n- The database started rejecting new connection requests.\n- The backend application couldn't get database connections and began timing out.\n- These delays spread to the web server, making the website slow for users.\n\nWhy are we confident?\n\n- \u00e2\u0153\u201c Configuration audit confirms the connection limit was changed.\n- \u00e2\u0153\u201c Database logs show \"Too many connections.\"\n- \u00e2\u0153\u201c CPU and memory usage are normal.\n- \u00e2\u0153\u201c The slowdown began immediately after the configuration change.\n\nConclusion: The configuration change on db-01 is the root cause.",
+  "narrative": "Root Cause\n\nAt 2:30 PM, the load balancer began receiving a massive influx of malformed SYN packets from thousands of external IP addresses.\n\nWhat happened next?\n\n- Within seconds, the connection queue on the load balancer filled up completely.\n- The load balancer CPU spiked to 100% as it attempted to process the malicious traffic.\n- Legitimate user requests were dropped because no sockets were available.\n- Downstream web servers saw a massive drop in traffic because the load balancer could not forward anything.\n\nWhy are we confident?\n\n- \u2713 Network telemetry shows a 10,000% spike in inbound SYN packets.\n- \u2713 Load balancer logs explicitly show 'SYN flood detected, dropping packets.'\n- \u2713 CPU on lb-01 hit 100% concurrently with the traffic spike.\n- \u2713 Traffic to web-01 and web-02 dropped to near zero immediately after the spike began.\n\nConclusion: A volumetric DDoS attack targeting the load balancer is the root cause.",
   "recommended_steps": [
     "Access the data-tier switch and execute the command to display interface statistics, focusing on error and discard counters (e.g., 'show interfaces counters errors' or 'show interfaces' depending on vendor).",
     "Check SNMP configuration on the data-tier switch to confirm SNMP polling and trap settings are enabled for interface statistics.",

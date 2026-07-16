@@ -31,7 +31,7 @@ const DEMO_SCENARIOS = [
     label: "DDoS Attack",
     icon: Shield,
     description: "High rate load-balancer packets flood exhausts socket capacity",
-    available: false,
+    available: true,
   },
   {
     id: "capacity_exhaustion",

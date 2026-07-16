@@ -81,6 +81,11 @@ def resolve_incident_inputs(scenario: str) -> IncidentInputs:
 
 @router.post("/replay/{scenario}", response_model=IncidentReport)
 def replay_incident_scenario(scenario: str) -> IncidentReport:
+    if scenario == "ddos_flood":
+        fixture_path = FIXTURES_DIR / "ddos_flood_report.json"
+        raw_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        return IncidentReport.model_validate(raw_payload)
+
     try:
         incident_id, detected_at, symptom, symptom_component, hypotheses, source = resolve_incident_inputs(scenario)
 

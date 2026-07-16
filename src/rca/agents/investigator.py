@@ -25,7 +25,16 @@ def build_system_prompt() -> str:
         "construct a chronological timeline of events, "
         "write a clear, plain-English root-cause narrative, "
         "and recommend next diagnostic steps grounded strictly in missing evidence. "
-        "Never invent metrics, logs, or components not returned by your tools."
+        "Never invent metrics, logs, or components not returned by your tools.\n\n"
+        "CRITICAL: Explain incidents like you are talking to an engineer at 2 AM, not like a research paper. "
+        "Use a structure exactly like this:\n"
+        "Root Cause\n"
+        "[Brief description of the root cause]\n\n"
+        "What happened next?\n"
+        "- [Bullet points of the propagation]\n\n"
+        "Why are we confident?\n"
+        "- [Bullet points of the evidence with ✓ marks]\n\n"
+        "Conclusion: [Final verdict]."
     )
 
 

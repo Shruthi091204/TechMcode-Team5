@@ -54,6 +54,11 @@ export default function Home() {
       {/* Background ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#E50914]/5 rounded-full blur-[120px] pointer-events-none" />
 
+      {/* Tech Mahindra Logo */}
+      <div className="absolute top-8 left-8 z-50">
+        <img src="/tech_mahindra_logo_uploaded.png" alt="Tech Mahindra" className="h-20 md:h-24 object-contain" />
+      </div>
+
       <motion.div 
         variants={containerVariants}
         initial="hidden"
@@ -62,11 +67,7 @@ export default function Home() {
       >
         {/* HERO SECTION */}
         <motion.div variants={itemVariants} className="text-center flex flex-col items-center gap-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 text-[#E50914] text-[10px] font-bold uppercase tracking-widest mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-            Global Diagnostics Active
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mt-8">
             NETWORK OPERATIONS
           </h1>
           <p className="text-[#A3A3A8] text-lg max-w-2xl font-medium">
