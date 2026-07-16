@@ -140,7 +140,7 @@ scripts/            build_knowledge.py (build the vector index)
 eval/               accuracy benchmarks (synth_eval.py, run_eval.py)
 web/                Next.js NOC dashboard (upload, analyze, report; healthy view)
 tests/              contract + engine + detection + generator + upload + retrieval suites (340+ tests)
-docs/               architecture diagram, architecture notes, demo script
+docs/               architecture diagram, demo script
 Makefile            setup / lint / test / check targets
 ```
 

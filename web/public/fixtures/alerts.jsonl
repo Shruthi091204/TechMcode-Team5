@@ -1,7 +1,0 @@
-{"alert_id":"ALT-9001","component_id":"cache-02","ts":"2026-07-14T14:31:05Z","severity":"WARN","rule":"cache_latency_high","metric":"latency_ms","threshold":3.0,"observed":4.2}
-{"alert_id":"ALT-9002","component_id":"db-01","ts":"2026-07-14T14:31:40Z","severity":"WARN","rule":"db_connection_ceiling","metric":"connection_count","threshold":145.0,"observed":150.0}
-{"alert_id":"ALT-9003","component_id":"app-03","ts":"2026-07-14T14:32:25Z","severity":"CRITICAL","rule":"app_latency_critical","metric":"latency_ms","threshold":80.0,"observed":178.3}
-{"alert_id":"ALT-9004","component_id":"web-02","ts":"2026-07-14T14:32:40Z","severity":"CRITICAL","rule":"web_p99_latency_critical","metric":"latency_ms","threshold":100.0,"observed":138.4}
-{"alert_id":"ALT-9005","component_id":"lb-01","ts":"2026-07-14T14:33:00Z","severity":"WARN","rule":"lb_error_rate_high","metric":"error_rate","threshold":0.02,"observed":0.031}
-{"alert_id":"ALT-9006","component_id":"db-01","ts":"2026-07-14T14:33:15Z","severity":"CRITICAL","rule":"db_error_rate_critical","metric":"error_rate","threshold":0.05,"observed":0.082}
-{"alert_id":"ALT-9007","component_id":"web-01","ts":"2026-07-14T14:33:25Z","severity":"CRITICAL","rule":"web_p99_latency_critical","metric":"latency_ms","threshold":100.0,"observed":121.7}
