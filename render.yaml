@@ -1,0 +1,19 @@
+# Render Blueprint for the CausalOps backend (FastAPI).
+# Deploy: push to GitHub, then in Render → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: causalops-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # 'free' spins down after 15 min idle and has 512MB RAM (may be tight with
+    # dowhy + chromadb). Use 'starter' for a reliable live demo.
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false          # set this in the Render dashboard (secret)
+      - key: OPENAI_MODEL
+        value: gpt-4.1
+      - key: ALLOWED_ORIGINS
+        value: "*"           # tighten to your Vercel URL after first deploy

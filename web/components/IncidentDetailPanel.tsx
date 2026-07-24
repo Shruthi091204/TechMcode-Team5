@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Cpu, Activity, AlertTriangle, FileText, Settings, Database, Layers } from "lucide-react";
 import { IncidentReport, Component } from "../lib/types";

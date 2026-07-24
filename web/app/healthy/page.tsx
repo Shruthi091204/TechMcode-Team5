@@ -31,16 +31,42 @@ export default function HealthyPage() {
 
   if (loaded && !state) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-white">
-        <p className="text-[#A3A3A8] text-sm">No health report loaded — upload a dataset first.</p>
-        <Link href="/" className="text-[#2ECC71] text-sm font-bold uppercase tracking-wider">
-          ← Back to dashboard
-        </Link>
+      <div className="min-h-screen flex items-center justify-center p-4 text-white">
+        <div className="surface p-8 max-w-md w-full text-center flex flex-col items-center gap-4">
+          <span className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--accent-green)]/12 text-[var(--accent-green)] flex items-center justify-center">
+            <ShieldCheck size={24} aria-hidden />
+          </span>
+          <div>
+            <h1 className="text-white font-bold text-base">No health report loaded</h1>
+            <p className="text-[var(--text-secondary)] text-sm mt-1.5 leading-relaxed">
+              This page appears after you analyze a fault-free dataset. Upload one to see the all-clear verdict.
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="interactive bg-[var(--accent-green)] hover:brightness-110 text-[#06210F] px-5 py-2.5 rounded-[var(--radius-md)] text-xs font-bold uppercase tracking-wider"
+          >
+            Go to console
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (!state) return null;
+  if (!state) {
+    return (
+      <div className="min-h-screen p-8 max-w-6xl mx-auto flex flex-col gap-8" role="status" aria-live="polite">
+        <span className="sr-only">Loading health report</span>
+        <div className="skeleton h-4 w-32" />
+        <div className="skeleton h-28 w-full rounded-[var(--radius-xl)]" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((cell) => (
+            <div key={cell} className="skeleton h-24 rounded-[var(--radius-lg)]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const { result, topology } = state;
 

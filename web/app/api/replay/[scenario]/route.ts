@@ -5,8 +5,9 @@ export async function POST(
   { params }: { params: Promise<{ scenario: string }> }
 ) {
   const { scenario } = await params;
+  const backend = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
   try {
-    const res = await fetch(`http://127.0.0.1:8000/replay/${scenario}`, {
+    const res = await fetch(`${backend}/replay/${scenario}`, {
       method: "POST",
     });
     if (!res.ok) {
@@ -17,7 +18,7 @@ export async function POST(
     }
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Scenario not available yet (backend offline)" },
       { status: 503 }

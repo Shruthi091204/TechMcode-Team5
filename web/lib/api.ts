@@ -1,8 +1,9 @@
 import { Component, Dependency, IncidentReport } from "./types";
 
-// Note: In Next.js, fetching from "/api" hits our next.config.ts proxy
-// which routes traffic directly to the Python FastAPI backend on port 8000.
-export const API_BASE_URL = "/api";
+// In production, set NEXT_PUBLIC_API_URL to the deployed backend origin
+// (e.g. https://causalops-backend.onrender.com). Locally it falls back to
+// "/api", which the next.config.ts rewrite proxies to the FastAPI backend.
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function getTopology(): Promise<{ components: Component[]; dependencies: Dependency[] }> {
   const url = `${API_BASE_URL}/topology`;
@@ -39,7 +40,14 @@ export async function getIncident(incidentId: string): Promise<IncidentReport> {
   return data;
 }
 
-export async function getAuditVerification(): Promise<any> {
+export interface AuditVerification {
+  is_valid: boolean;
+  total_events: number;
+  failed_at_index: number | null;
+  failure_reason: string | null;
+}
+
+export async function getAuditVerification(): Promise<AuditVerification> {
   const url = `${API_BASE_URL}/audit/verify`;
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {

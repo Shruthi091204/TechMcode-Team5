@@ -32,7 +32,7 @@ export default function MetricStrip({ incident }: MetricStripProps) {
       label: "Logs",
       value: `${logCount}`,
       status: logCount ? `${logCount} log event${logCount === 1 ? "" : "s"}` : "No log events",
-      severity: logCount ? "critical" : "normal",
+      severity: "normal",
     },
     {
       label: "Alerts",
@@ -68,43 +68,46 @@ export default function MetricStrip({ incident }: MetricStripProps) {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
     >
       {cards.map((card, idx) => {
         const isCritical = card.severity === "critical";
         const isElevated = card.severity === "elevated";
-        
-        const valueColor = isCritical 
-          ? "text-[#E50914] text-status-glow" 
-          : isElevated 
-            ? "text-[#FFA53B]" 
+
+        const valueColor = isCritical
+          ? "text-[var(--accent-red)] text-status-glow"
+          : isElevated
+            ? "text-[var(--accent-amber)]"
             : "text-white";
+
+        const accentBorder = isCritical
+          ? "border-[var(--accent-red)]/35"
+          : isElevated
+            ? "border-[var(--accent-amber)]/30"
+            : "border-[var(--line-hairline)]";
 
         return (
           <motion.div
             key={idx}
             variants={itemVariants}
-            whileHover={{ 
-              scale: 1.02, 
-              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-              backgroundColor: "#1F1F24"
-            }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="bg-[#16161A] p-6 flex flex-col justify-between min-h-[120px] rounded-xl shadow-soft cursor-pointer select-none"
+            className={`surface interactive border ${accentBorder} p-5 sm:p-6 flex flex-col justify-between min-h-[120px] select-none relative overflow-hidden`}
           >
-            <div className="text-sm tracking-wide font-bold text-[#D1D1D6]">
+            {isCritical ? (
+              <span className="absolute inset-x-0 top-0 h-0.5 bg-[var(--accent-red)]" aria-hidden />
+            ) : null}
+            <div className="text-[11px] tracking-[0.08em] uppercase font-bold text-[var(--text-tertiary)]">
               {card.label}
             </div>
             <div className="mt-2">
-              <div 
-                className={`text-3xl font-black ${valueColor}`}
+              <div
+                className={`text-2xl sm:text-3xl font-black tabular-nums ${valueColor}`}
                 style={{ fontWeight: 900, letterSpacing: "-0.02em" }}
               >
                 {card.value}
               </div>
-              <div 
-                className={`text-[13px] font-medium mt-1 ${
-                  isCritical ? "text-[#E50914]" : "text-[#A3A3A8]"
+              <div
+                className={`text-[12px] font-medium mt-1 ${
+                  isCritical ? "text-[var(--accent-red)]" : "text-[var(--text-secondary)]"
                 }`}
               >
                 {card.status}
