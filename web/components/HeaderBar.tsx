@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 interface HeaderBarProps {
   incidentId: string;
@@ -30,23 +31,33 @@ export default function HeaderBar({ incidentId, detectedAt, auditHash, symptom }
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="py-10 flex flex-col gap-4 border-b border-[#2A2A2E]/50 mb-2"
     >
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-1 rounded-md shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center">
-            <img 
-              src="/tech_mahindra_logo_uploaded.png?v=2" 
-              alt="Tech Mahindra" 
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/"
+            aria-label="Back to operations console"
+            className="interactive shrink-0 w-9 h-9 rounded-[var(--radius-md)] border border-[var(--line-hairline)] bg-[var(--bg-panel)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white"
+          >
+            <ArrowLeft size={16} aria-hidden />
+          </Link>
+          <div className="bg-white p-1 rounded-md shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center shrink-0">
+            <img
+              src="/tech_mahindra_logo_uploaded.png?v=2"
+              alt="Tech Mahindra"
               className="h-8 w-8 object-contain mix-blend-multiply"
             />
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-[#A3A3A8] font-bold tracking-wide">
-            <span className="inline-block w-2 h-2 bg-[#E50914] rounded-full animate-ping shadow-[0_0_8px_#E50914]"></span>
+          <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)] font-bold tracking-wide flex-wrap">
+            <span className="inline-block w-2 h-2 bg-[var(--accent-red)] rounded-full animate-ping shadow-[0_0_8px_#E50914]" aria-hidden></span>
             <span>Incident ID: {incidentId}</span>
-            <span className="text-[#6B6B70]">•</span>
+            <span className="text-[var(--text-tertiary)]" aria-hidden>•</span>
             <span>Detected: {formatDetected(detectedAt)}</span>
           </div>
         </div>
-        <div className="text-[10px] bg-[#1F1F24] px-3.5 py-1.5 font-bold text-[#A3A3A8] rounded-full tracking-wide shadow-soft border border-[#2A2A2E]">
+        <div
+          title={auditHash}
+          className="text-[10px] bg-[var(--bg-panel-raised)] px-3.5 py-1.5 font-bold text-[var(--text-secondary)] rounded-full tracking-wide shadow-soft border border-[var(--line-hairline)]"
+        >
           Audit Hash: {auditHash.slice(0, 12)}
         </div>
       </div>

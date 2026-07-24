@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion as m } from "framer-motion";
 import { Sparkles, ClipboardList, Zap, Play, ChevronDown, ChevronUp, Pause, BookOpen } from "lucide-react";
-import { IncidentReport, TimelineEvent } from "../lib/types";
+import { IncidentReport, Hypothesis, EvidenceItem } from "../lib/types";
 import { retrieveKnowledge, KnowledgeResult } from "../lib/api";
 
 // Typewriter Component for cinematic text reveal
@@ -34,7 +34,7 @@ const TypewriterText = ({ text, delay = 0, speed = 15 }: { text: string; delay?:
 
 interface InvestigationTabsProps {
   incident: IncidentReport;
-  activeHypothesis: any;
+  activeHypothesis: Hypothesis | undefined;
   timelineFilterIndex: number;
   setTimelineFilterIndex: React.Dispatch<React.SetStateAction<number>>;
 }
@@ -77,10 +77,10 @@ export default function InvestigationTabs({
     return () => clearInterval(interval);
   }, [isPlaying, incident.timeline.length, setTimelineFilterIndex]);
 
-  const evidenceItems = activeHypothesis?.evidence || [];
-  const confirmed = evidenceItems.filter((item: any) => item.kind === "confirmed");
-  const correlated = evidenceItems.filter((item: any) => item.kind === "correlated");
-  const missing = evidenceItems.filter((item: any) => item.kind === "missing");
+  const evidenceItems: EvidenceItem[] = activeHypothesis?.evidence || [];
+  const confirmed = evidenceItems.filter((item) => item.kind === "confirmed");
+  const correlated = evidenceItems.filter((item) => item.kind === "correlated");
+  const missing = evidenceItems.filter((item) => item.kind === "missing");
 
   // Chat Transcript logic for AI Investigation
   const pathText = (activeHypothesis?.topology_path || []).join(" → ");
@@ -156,14 +156,16 @@ export default function InvestigationTabs({
             <m.button
               key={box.id}
               onClick={() => setExpandedBox(isExpanded ? null : box.id)}
-              whileHover={{ 
-                scale: 1.02, 
+              aria-expanded={isExpanded}
+              aria-label={`${box.label}: ${box.summary}`}
+              whileHover={{
+                scale: 1.02,
                 boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                 backgroundColor: "#1F1F24"
               }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className={`bg-[#16161A] border rounded-xl p-5 text-left transition-all duration-300 flex items-center justify-between shadow-soft select-none ${
-                isExpanded ? "border-[#E50914] state-active-glow" : "border-[#2A2A2E]/50"
+              className={`bg-[#16161A] border rounded-xl p-5 text-left transition-all duration-300 flex items-center justify-between gap-3 shadow-soft select-none ${
+                isExpanded ? "border-[#E50914] state-active-glow" : "border-[#2A2A2E]/50 hover:border-[var(--line-strong)]"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -248,7 +250,7 @@ export default function InvestigationTabs({
                         {confirmed.length === 0 ? (
                           <span className="text-sm text-[#6B6B70] italic">No confirmed evidence.</span>
                         ) : (
-                          confirmed.map((item: any, idx: number) => (
+                          confirmed.map((item, idx) => (
                             <div key={idx} className="text-sm border-l-2 border-[#2ECC71] pl-3 py-1">
                               <div className="text-[#EBEBF5] font-medium">{item.statement}</div>
                               <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">
@@ -270,7 +272,7 @@ export default function InvestigationTabs({
                         {correlated.length === 0 ? (
                           <span className="text-sm text-[#6B6B70] italic">No correlated evidence.</span>
                         ) : (
-                          correlated.map((item: any, idx: number) => (
+                          correlated.map((item, idx) => (
                             <div key={idx} className="text-sm border-l-2 border-[#FFA53B] pl-3 py-1">
                               <div className="text-[#EBEBF5] font-medium">{item.statement}</div>
                               <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">
@@ -292,7 +294,7 @@ export default function InvestigationTabs({
                         {missing.length === 0 ? (
                           <span className="text-sm text-[#6B6B70] italic">No missing evidence.</span>
                         ) : (
-                          missing.map((item: any, idx: number) => (
+                          missing.map((item, idx) => (
                             <div key={idx} className="text-sm border-l-2 border-[#3B82F6] pl-3 py-1">
                               <div className="text-[#A3A3A8]">{item.statement}</div>
                               <div className="text-[10px] text-[#8E8E93] mt-1 font-semibold uppercase">

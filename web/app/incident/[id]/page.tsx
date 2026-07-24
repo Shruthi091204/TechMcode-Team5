@@ -2,6 +2,8 @@
 
 import React, { useState, use, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import HeaderBar from "../../../components/HeaderBar";
 import MetricStrip from "../../../components/MetricStrip";
 import TopologyGraph from "../../../components/TopologyGraph";
@@ -16,7 +18,7 @@ interface PageProps {
 
 export default function IncidentPage({ params }: PageProps) {
   const resolvedParams = use(params);
-  const [selectedRank, setSelectedRank] = useState<number>(1);
+  const [selectedRank] = useState<number>(1);
   const [incident, setIncident] = useState<IncidentReport | null>(null);
   const [topology, setTopology] = useState<{ components: Component[]; dependencies: Dependency[] } | null>(null);
   const [telemetry, setTelemetry] = useState<Record<string, unknown>[]>([]);
@@ -88,11 +90,26 @@ export default function IncidentPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-        <div className="text-center select-none flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border border-[#E50914] border-t-transparent animate-spin rounded-full" />
-          <div className="text-xs text-[#A3A3A8] animate-pulse uppercase tracking-widest font-semibold">
-            Loading Incident Diagnostics...
+      <div className="min-h-screen bg-background text-foreground p-4 sm:p-8" role="status" aria-live="polite">
+        <span className="sr-only">Loading incident diagnostics</span>
+        <div className="max-w-[1600px] mx-auto flex flex-col gap-6 animate-in">
+          <div className="flex flex-col gap-3 py-8 border-b border-[var(--line-hairline)]/50">
+            <div className="skeleton h-3 w-64" />
+            <div className="skeleton h-9 w-[min(560px,90%)]" />
+            <div className="skeleton h-3 w-80" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((cell) => (
+              <div key={cell} className="surface p-5 flex flex-col gap-3">
+                <div className="skeleton h-2.5 w-20" />
+                <div className="skeleton h-7 w-28" />
+                <div className="skeleton h-2.5 w-16" />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="skeleton h-[550px] flex-1 rounded-[var(--radius-lg)]" />
+            <div className="skeleton h-[550px] lg:w-[38%] rounded-[var(--radius-lg)]" />
           </div>
         </div>
       </div>
@@ -102,20 +119,33 @@ export default function IncidentPage({ params }: PageProps) {
   if (error || !incident || !topology) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-        <div className="border border-[#2A2A2E] bg-[#16161A] p-6 max-w-md w-full select-none rounded-xl">
-          <div className="text-[#E50914] font-extrabold text-sm mb-2 border-b border-[#2A2A2E] pb-2 flex justify-between">
-            <span>[CRITICAL_FAILURE]</span>
-            <span>ERROR CODE: 500</span>
+        <div className="surface p-6 max-w-md w-full" role="alert">
+          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-[var(--line-hairline)]">
+            <span className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--accent-red)]/15 text-[var(--accent-red)] flex items-center justify-center shrink-0">
+              <AlertTriangle size={16} />
+            </span>
+            <span className="text-white font-bold text-sm">Could not load this incident</span>
           </div>
-          <div className="text-xs text-[#A3A3A8] mb-4 font-sans leading-relaxed">
-            {error || "An unexpected error occurred while loading telemetry fixtures."}
+          <p className="text-xs text-[var(--text-secondary)] mb-2 leading-relaxed">
+            {error || "The incident data could not be retrieved."}
+          </p>
+          <p className="text-[11px] text-[var(--text-tertiary)] mb-4 leading-relaxed">
+            Check that the backend is running on port 8000, then try again.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="interactive flex-1 text-xs py-2.5 px-4 bg-[var(--accent-red)] hover:bg-[#c00811] text-white rounded-[var(--radius-md)] font-bold uppercase tracking-wider"
+            >
+              Try again
+            </button>
+            <Link
+              href="/"
+              className="interactive text-xs py-2.5 px-4 border border-[var(--line-hairline)] text-[var(--text-secondary)] hover:text-white rounded-[var(--radius-md)] font-bold uppercase tracking-wider flex items-center"
+            >
+              Back
+            </Link>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-xs py-2 px-4 border border-[#E50914] text-white hover:bg-[#E50914]/10 rounded-lg w-full font-bold uppercase transition-all"
-          >
-            Retry Connectivity
-          </button>
         </div>
       </div>
     );
@@ -144,40 +174,6 @@ export default function IncidentPage({ params }: PageProps) {
     setIsDrawerOpen(true);
   };
 
-  // BFS hop distance from root cause node in page.tsx
-  const hopDistances = (() => {
-    const distances: Record<string, number> = {};
-    const rootCauseId = activeHypothesis?.root_cause_component;
-    if (!rootCauseId) return distances;
-    
-    distances[rootCauseId] = 0;
-    const queue: string[] = [rootCauseId];
-    
-    const adj: Record<string, string[]> = {};
-    topology.components.forEach(c => {
-      adj[c.component_id] = [];
-    });
-    topology.dependencies.forEach(dep => {
-      if (!adj[dep.source_id]) adj[dep.source_id] = [];
-      adj[dep.source_id].push(dep.target_id);
-      if (!adj[dep.target_id]) adj[dep.target_id] = [];
-      adj[dep.target_id].push(dep.source_id);
-    });
-    
-    let head = 0;
-    while (head < queue.length) {
-      const u = queue[head++];
-      const d = distances[u];
-      const neighbors = adj[u] || [];
-      for (const v of neighbors) {
-        if (distances[v] === undefined) {
-          distances[v] = d + 1;
-          queue.push(v);
-        }
-      }
-    }
-    return distances;
-  })();
 
   // Page Load Framer Motion Variants
   const pageVariants = {
@@ -305,8 +301,8 @@ export default function IncidentPage({ params }: PageProps) {
         variants={sectionVariants}
         className="border-t border-[#2A2A2E]/50 pt-4 text-[10px] text-[#A3A3A8] flex items-center justify-between font-semibold"
       >
-        <span>CONSOLE_FEED // STATUS: ACTIVE_DIAGNOSTICS</span>
-        <span>NODE_COUNT: {topology?.components.length} // NOC_STABLE</span>
+        <span>{"CONSOLE_FEED // STATUS: ACTIVE_DIAGNOSTICS"}</span>
+        <span>NODE_COUNT: {topology?.components.length}{" // NOC_STABLE"}</span>
       </motion.footer>
     </motion.div>
   );
